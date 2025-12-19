@@ -169,12 +169,10 @@ export class WorkflowEngine {
                 console.log(`[Email Service] To: ${config.to} | Subject: ${config.subject}`);
 
                 // If SMTP env vars are present, send real email
-                if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+                if (process.env.SMTP_USER && process.env.SMTP_PASS) {
                     const nodemailer = require('nodemailer');
                     const transporter = nodemailer.createTransport({
-                        host: process.env.SMTP_HOST,
-                        port: parseInt(process.env.SMTP_PORT || '587'),
-                        secure: process.env.SMTP_SECURE === 'true',
+                        service: 'gmail', // Use built-in Gmail service settings
                         auth: {
                             user: process.env.SMTP_USER,
                             pass: process.env.SMTP_PASS,
