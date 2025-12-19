@@ -2,7 +2,7 @@ import { memo, useState, useEffect } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import { WorkflowNode } from '@automation/shared';
+import { WorkflowNode } from '@/lib/shared';
 import { Settings, Zap, Play, ArrowRightLeft, Code, Mail, MessageSquare, Clock, Hourglass, Repeat, Info, Sparkles, Check, X, RefreshCw } from 'lucide-react';
 import {
     Tooltip,

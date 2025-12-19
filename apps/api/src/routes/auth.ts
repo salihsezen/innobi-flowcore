@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../lib/db';
-import { RegisterSchema, LoginSchema } from '@automation/shared';
+import { RegisterSchema, LoginSchema } from '../shared';
 
 export const authRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';

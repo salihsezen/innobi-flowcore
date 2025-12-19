@@ -1,4 +1,4 @@
-import { WorkflowDefinition, WorkflowNode, WorkflowEdge, NodeType } from '@automation/shared';
+import { WorkflowDefinition, WorkflowNode, WorkflowEdge, NodeType } from '../shared';
 import { db } from '../lib/db';
 import axios from 'axios';
 

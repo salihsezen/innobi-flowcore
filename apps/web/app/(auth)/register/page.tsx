@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RegisterSchema } from "@automation/shared";
+import { RegisterSchema } from "@/lib/shared";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";

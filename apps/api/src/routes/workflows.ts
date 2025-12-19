@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../lib/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../lib/audit';
-import { CreateWorkflowSchema } from '@automation/shared';
+import { CreateWorkflowSchema } from '../shared';
 import { executionQueue } from '../lib/queue';
 
 export const workflowRouter = Router();
