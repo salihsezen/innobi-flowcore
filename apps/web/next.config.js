@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: false,
-    transpilePackages: ['@automation/shared', 'lucide-react']
+    experimental: {
+        transpilePackages: ['@automation/shared', 'lucide-react']
+    }
 }
 
 module.exports = nextConfig
