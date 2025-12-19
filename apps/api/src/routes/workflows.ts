@@ -124,7 +124,7 @@ workflowRouter.delete('/:id', async (req: AuthRequest, res) => {
 
         console.log(`[DELETE] Finding executions...`);
         const executions = await db.execution.findMany({ where: { workflowId: id }, select: { id: true } });
-        const execIds = executions.map(e => e.id);
+        const execIds = executions.map((e: any) => e.id);
         console.log(`[DELETE] Found ${execIds.length} executions. Cleaning logs...`);
 
         const lCount = await db.executionLog.deleteMany({ where: { executionId: { in: execIds } } });

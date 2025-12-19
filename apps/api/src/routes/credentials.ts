@@ -12,7 +12,7 @@ credentialRouter.get('/', async (req: AuthRequest, res) => {
         where: { userId: req.user!.id }
     });
     // Mask data
-    const masked = credentials.map(c => ({
+    const masked = credentials.map((c: any) => ({
         id: c.id,
         name: c.name,
         type: c.type,
