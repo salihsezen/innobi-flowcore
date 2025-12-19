@@ -1,0 +1,16 @@
+{
+  "name": "automation-platform-mvp",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=@automation/api\" \"npm run dev --workspace=@automation/web\" -c \"blue,magenta\" --kill-others",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

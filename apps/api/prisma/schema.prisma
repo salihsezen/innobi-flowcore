@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  role         String     @default("USER")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  workflows    Workflow[]
+}
+
+model Workflow {
+  id          String            @id @default(uuid())
+  name        String
+  description String?
+  definition  String            @default("{}")
+  status      String            @default("DRAFT")
+  tags        String
+  userId      String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  executions  Execution[]
+  user        User              @relation(fields: [userId], references: [id])
+  versions    WorkflowVersion[]
+}
+
+model WorkflowVersion {
+  id            String   @id @default(uuid())
+  workflowId    String
+  versionNumber Int
+  definition    String
+  createdAt     DateTime @default(now())
+  workflow      Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model Credential {
+  id            String   @id @default(uuid())
+  name          String
+  type          String
+  dataEncrypted String
+  userId        String?
+  createdAt     DateTime @default(now())
+}
+
+model Execution {
+  id          String         @id @default(uuid())
+  workflowId  String
+  status      String         @default("PENDING")
+  triggerType String         @default("manual")
+  input       String?
+  output      String?
+  error       String?
+  startedAt   DateTime       @default(now())
+  finishedAt  DateTime?
+  workflow    Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  logs        ExecutionLog[]
+}
+
+model ExecutionLog {
+  id          String    @id @default(uuid())
+  executionId String
+  nodeId      String
+  level       String    @default("info")
+  message     String
+  data        String?
+  timestamp   DateTime  @default(now())
+  execution   Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+}
+
+model Template {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String?
+  definition  String
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityId   String?
+  entityType String?
+  details    String?
+  timestamp  DateTime @default(now())
+}
