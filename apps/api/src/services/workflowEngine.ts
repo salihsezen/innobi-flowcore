@@ -167,7 +167,31 @@ export class WorkflowEngine {
             case NodeType.SEND_EMAIL:
                 // Resolved expressions will already be in config.to, config.subject, config.body
                 console.log(`[Email Service] To: ${config.to} | Subject: ${config.subject}`);
-                console.log(`[Email Service] Body: ${config.body}`);
+
+                // If SMTP env vars are present, send real email
+                if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+                    const nodemailer = require('nodemailer');
+                    const transporter = nodemailer.createTransport({
+                        host: process.env.SMTP_HOST,
+                        port: parseInt(process.env.SMTP_PORT || '587'),
+                        secure: process.env.SMTP_SECURE === 'true',
+                        auth: {
+                            user: process.env.SMTP_USER,
+                            pass: process.env.SMTP_PASS,
+                        },
+                    });
+
+                    await transporter.sendMail({
+                        from: process.env.SMTP_FROM || '"FlowCore Bot" <no-reply@flowcore.com>',
+                        to: config.to,
+                        subject: config.subject,
+                        text: config.body,
+                    });
+                    console.log('[Email Service] Real email sent successfully.');
+                } else {
+                    console.log('[Email Service] SMTP not configured, skipping real send.');
+                }
+
                 return {
                     sent: true,
                     recipient: config.to,

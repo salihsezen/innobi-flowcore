@@ -421,263 +421,466 @@ export function WorkflowBuilder({ id }: { id: string }) {
 
                 {/* Right Panel */}
                 {isConfigOpen && (
-                <div className="w-80 border-l bg-background/60 backdrop-blur-xl flex flex-col premium-shadow z-10 overflow-hidden">
-                    <Tabs defaultValue="config" className="flex flex-col h-full">
-                        <div className="p-4 border-b bg-background/20">
-                            <TabsList className="w-full bg-accent/50 p-1 rounded-xl">
-                                <TabsTrigger value="config" className="flex-1 flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                                    <Settings size={14} /> Config
-                                </TabsTrigger>
-                                <TabsTrigger value="history" className="flex-1 flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={fetchExecutions}>
-                                    <History size={14} /> History
-                                </TabsTrigger>
-                            </TabsList>
-                        </div>
+                    <div className="w-80 border-l bg-background/60 backdrop-blur-xl flex flex-col premium-shadow z-10 overflow-hidden">
+                        <Tabs defaultValue="config" className="flex flex-col h-full">
+                            <div className="p-4 border-b bg-background/20">
+                                <TabsList className="w-full bg-accent/50 p-1 rounded-xl">
+                                    <TabsTrigger value="config" className="flex-1 flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                        <Settings size={14} /> Config
+                                    </TabsTrigger>
+                                    <TabsTrigger value="history" className="flex-1 flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={fetchExecutions}>
+                                        <History size={14} /> History
+                                    </TabsTrigger>
+                                </TabsList>
+                            </div>
 
-                        <TabsContent value="config" className="flex-1 overflow-y-auto p-4 m-0">
-                            {selectedNode ? (
-                                <>
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="font-bold text-lg">{selectedNode.data.label}</h3>
-                                        <Button variant="ghost" size="icon" onClick={() => setNodes(nodes.filter(n => n.id !== selectedNode.id))}>
-                                            <Trash size={16} className="text-red-500" />
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="border-b pb-6 space-y-4">
-                                            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">General</h4>
-                                            <div className="space-y-2">
-                                                <Label className="text-xs">Node Label</Label>
-                                                <Input value={selectedNode.data.label} onChange={e => updateNodeData('label', e.target.value)} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-xs">Description</Label>
-                                                <Input
-                                                    value={selectedNode.data.description || ''}
-                                                    onChange={e => updateNodeData('description', e.target.value)}
-                                                    placeholder="Add a note..."
-                                                />
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id="node-enabled"
-                                                    checked={selectedNode.data.enabled !== false}
-                                                    onChange={e => updateNodeData('enabled', e.target.checked)}
-                                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                />
-                                                <Label htmlFor="node-enabled" className="cursor-pointer text-xs">Enabled</Label>
-                                            </div>
+                            <TabsContent value="config" className="flex-1 overflow-y-auto p-4 m-0">
+                                {selectedNode ? (
+                                    <>
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="font-bold text-lg">{selectedNode.data.label}</h3>
+                                            <Button variant="ghost" size="icon" onClick={() => setNodes(nodes.filter(n => n.id !== selectedNode.id))}>
+                                                <Trash size={16} className="text-red-500" />
+                                            </Button>
                                         </div>
-
-                                        <div className="bg-blue-50 p-2 rounded text-[10px] text-blue-700 border border-blue-100 flex gap-2">
-                                            <div className="font-bold">TIP:</div>
-                                            <div>Use <code className="bg-blue-100 px-1 rounded">{"{{node_id.key}}"}</code> to reference previous outputs.</div>
-                                        </div>
-
-                                        <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Configuration</h4>
                                         <div className="space-y-4">
-                                            {selectedNode.data.type === 'code' && (
-                                                <div className="space-y-3">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">JavaScript Code</Label>
-                                                        <Textarea
-                                                            value={selectedNode.data.config.code || 'return input;'}
-                                                            onChange={e => updateConfig('code', e.target.value)}
-                                                            placeholder="return { key: 'value' };"
-                                                            className="font-mono text-[10px] min-h-[200px] bg-slate-900 text-slate-100"
-                                                        />
-                                                    </div>
-                                                    <div className="text-[10px] text-muted-foreground space-y-1 bg-slate-50 p-2 rounded border">
-                                                        <p className="font-bold">Available Variables:</p>
-                                                        <ul className="list-disc pl-4 space-y-0.5">
-                                                            <li><code className="bg-slate-200 px-1 rounded">input</code>: Data from previous node.</li>
-                                                            <li><code className="bg-slate-200 px-1 rounded">context</code>: Map of all node results.</li>
-                                                        </ul>
-                                                        <p className="italic mt-1">Note: Code must return an object.</p>
-                                                    </div>
+                                            <div className="border-b pb-6 space-y-4">
+                                                <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">General</h4>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Node Label</Label>
+                                                    <Input value={selectedNode.data.label} onChange={e => updateNodeData('label', e.target.value)} />
                                                 </div>
-                                            )}
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Description</Label>
+                                                    <Input
+                                                        value={selectedNode.data.description || ''}
+                                                        onChange={e => updateNodeData('description', e.target.value)}
+                                                        placeholder="Add a note..."
+                                                    />
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="node-enabled"
+                                                        checked={selectedNode.data.enabled !== false}
+                                                        onChange={e => updateNodeData('enabled', e.target.checked)}
+                                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                    />
+                                                    <Label htmlFor="node-enabled" className="cursor-pointer text-xs">Enabled</Label>
+                                                </div>
+                                            </div>
 
-                                            {selectedNode.data.type === 'http-request' && (
-                                                <>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">URL</Label>
-                                                        <Input value={selectedNode.data.config.url || ''} onChange={e => updateConfig('url', e.target.value)} />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Method</Label>
-                                                        <Input value={selectedNode.data.config.method || 'GET'} onChange={e => updateConfig('method', e.target.value)} />
-                                                    </div>
-                                                    <div className="pt-2 border-t mt-2">
-                                                        <Label className="text-[10px] text-muted-foreground">Authentication</Label>
-                                                        <select
-                                                            className="w-full text-xs h-8 border rounded px-1 mb-2"
-                                                            value={selectedNode.data.config.auth?.type || 'none'}
-                                                            onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, type: e.target.value })}
-                                                        >
-                                                            <option value="none">None</option>
-                                                            <option value="bearer">Bearer Token</option>
-                                                            <option value="basic">Basic Auth</option>
-                                                        </select>
+                                            <div className="bg-blue-50 p-2 rounded text-[10px] text-blue-700 border border-blue-100 flex gap-2">
+                                                <div className="font-bold">TIP:</div>
+                                                <div>Use <code className="bg-blue-100 px-1 rounded">{"{{node_id.key}}"}</code> to reference previous outputs.</div>
+                                            </div>
 
-                                                        {selectedNode.data.config.auth?.type === 'bearer' && (
-                                                            <Input
-                                                                className="h-8 text-xs"
-                                                                placeholder="Token"
-                                                                value={selectedNode.data.config.auth.token || ''}
-                                                                onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, token: e.target.value })}
+                                            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Configuration</h4>
+                                            <div className="space-y-4">
+                                                {selectedNode.data.type === 'code' && (
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">JavaScript Code</Label>
+                                                            <Textarea
+                                                                value={selectedNode.data.config.code || 'return input;'}
+                                                                onChange={e => updateConfig('code', e.target.value)}
+                                                                placeholder="return { key: 'value' };"
+                                                                className="font-mono text-[10px] min-h-[200px] bg-slate-900 text-slate-100"
                                                             />
-                                                        )}
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground space-y-1 bg-slate-50 p-2 rounded border">
+                                                            <p className="font-bold">Available Variables:</p>
+                                                            <ul className="list-disc pl-4 space-y-0.5">
+                                                                <li><code className="bg-slate-200 px-1 rounded">input</code>: Data from previous node.</li>
+                                                                <li><code className="bg-slate-200 px-1 rounded">context</code>: Map of all node results.</li>
+                                                            </ul>
+                                                            <p className="italic mt-1">Note: Code must return an object.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
 
-                                                        {selectedNode.data.config.auth?.type === 'basic' && (
-                                                            <div className="space-y-1">
+                                                {selectedNode.data.type === 'http-request' && (
+                                                    <>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">URL</Label>
+                                                            <Input value={selectedNode.data.config.url || ''} onChange={e => updateConfig('url', e.target.value)} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Method</Label>
+                                                            <select
+                                                                className="w-full text-xs h-8 border rounded px-1"
+                                                                value={selectedNode.data.config.method || 'GET'}
+                                                                onChange={e => updateConfig('method', e.target.value)}
+                                                            >
+                                                                <option value="GET">GET</option>
+                                                                <option value="POST">POST</option>
+                                                                <option value="PUT">PUT</option>
+                                                                <option value="DELETE">DELETE</option>
+                                                                <option value="PATCH">PATCH</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="pt-2 border-t mt-2">
+                                                            <Label className="text-[10px] text-muted-foreground">Authentication</Label>
+                                                            <select
+                                                                className="w-full text-xs h-8 border rounded px-1 mb-2"
+                                                                value={selectedNode.data.config.auth?.type || 'none'}
+                                                                onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, type: e.target.value })}
+                                                            >
+                                                                <option value="none">None</option>
+                                                                <option value="bearer">Bearer Token</option>
+                                                                <option value="basic">Basic Auth</option>
+                                                            </select>
+
+                                                            {selectedNode.data.config.auth?.type === 'bearer' && (
                                                                 <Input
                                                                     className="h-8 text-xs"
-                                                                    placeholder="Username"
-                                                                    value={selectedNode.data.config.auth.username || ''}
-                                                                    onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, username: e.target.value })}
+                                                                    placeholder="Token"
+                                                                    value={selectedNode.data.config.auth.token || ''}
+                                                                    onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, token: e.target.value })}
                                                                 />
-                                                                <Input
-                                                                    className="h-8 text-xs"
-                                                                    type="password"
-                                                                    placeholder="Password"
-                                                                    value={selectedNode.data.config.auth.password || ''}
-                                                                    onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, password: e.target.value })}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </>
-                                            )}
+                                                            )}
 
-                                            {selectedNode.data.type === 'schedule-trigger' && (
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Cron Expression</Label>
-                                                    <Input
-                                                        value={selectedNode.data.config.cron || '*/5 * * * *'}
-                                                        onChange={e => updateConfig('cron', e.target.value)}
-                                                        placeholder="*/5 * * * *"
-                                                    />
-                                                    <p className="text-[10px] text-muted-foreground">Standard Cron syntax.</p>
-                                                </div>
-                                            )}
+                                                            {selectedNode.data.config.auth?.type === 'basic' && (
+                                                                <div className="space-y-1">
+                                                                    <Input
+                                                                        className="h-8 text-xs"
+                                                                        placeholder="Username"
+                                                                        value={selectedNode.data.config.auth.username || ''}
+                                                                        onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, username: e.target.value })}
+                                                                    />
+                                                                    <Input
+                                                                        className="h-8 text-xs"
+                                                                        type="password"
+                                                                        placeholder="Password"
+                                                                        value={selectedNode.data.config.auth.password || ''}
+                                                                        onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, password: e.target.value })}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
 
-                                            {selectedNode.data.type === 'send-email' && (
-                                                <div className="space-y-3">
+                                                {selectedNode.data.type === 'schedule-trigger' && (
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs">To</Label>
-                                                        <Input value={selectedNode.data.config.to || ''} onChange={e => updateConfig('to', e.target.value)} placeholder="email@example.com" />
+                                                        <Label className="text-xs">Cron Expression</Label>
+                                                        <Input
+                                                            value={selectedNode.data.config.cron || '*/5 * * * *'}
+                                                            onChange={e => updateConfig('cron', e.target.value)}
+                                                            placeholder="*/5 * * * *"
+                                                        />
+                                                        <p className="text-[10px] text-muted-foreground">Standard Cron syntax.</p>
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Subject</Label>
-                                                        <Input value={selectedNode.data.config.subject || ''} onChange={e => updateConfig('subject', e.target.value)} placeholder="Hello!" />
+                                                )}
+
+                                                {selectedNode.data.type === 'send-email' && (
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">To</Label>
+                                                            <Input value={selectedNode.data.config.to || ''} onChange={e => updateConfig('to', e.target.value)} placeholder="email@example.com" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Subject</Label>
+                                                            <Input value={selectedNode.data.config.subject || ''} onChange={e => updateConfig('subject', e.target.value)} placeholder="Hello!" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Body</Label>
+                                                            <Textarea
+                                                                value={selectedNode.data.config.body || ''}
+                                                                onChange={e => updateConfig('body', e.target.value)}
+                                                                placeholder="Email content..."
+                                                                className="text-xs"
+                                                            />
+                                                        </div>
                                                     </div>
+                                                )}
+
+                                                {selectedNode.data.type === 'slack-message' && (
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Webhook URL</Label>
+                                                            <Input value={selectedNode.data.config.webhookUrl || ''} onChange={e => updateConfig('webhookUrl', e.target.value)} placeholder="https://hooks.slack.com/services/..." />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Channel (optional)</Label>
+                                                            <Input value={selectedNode.data.config.channel || ''} onChange={e => updateConfig('channel', e.target.value)} placeholder="#general" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Message</Label>
+                                                            <Textarea
+                                                                value={selectedNode.data.config.text || ''}
+                                                                onChange={e => updateConfig('text', e.target.value)}
+                                                                placeholder="Your message here..."
+                                                                className="text-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {selectedNode.data.type === 'delay' && (
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs">Body</Label>
-                                                        <Textarea
-                                                            value={selectedNode.data.config.body || ''}
-                                                            onChange={e => updateConfig('body', e.target.value)}
-                                                            placeholder="Email content..."
-                                                            className="text-xs"
+                                                        <Label className="text-xs">Duration (ms)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedNode.data.config.duration || 1000}
+                                                            onChange={e => updateConfig('duration', parseInt(e.target.value))}
                                                         />
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {selectedNode.data.type === 'slack-message' && (
-                                                <div className="space-y-3">
+                                                {selectedNode.data.type === 'loop' && (
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs">Webhook URL</Label>
-                                                        <Input value={selectedNode.data.config.webhookUrl || ''} onChange={e => updateConfig('webhookUrl', e.target.value)} placeholder="https://hooks.slack.com/services/..." />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Channel (optional)</Label>
-                                                        <Input value={selectedNode.data.config.channel || ''} onChange={e => updateConfig('channel', e.target.value)} placeholder="#general" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Message</Label>
-                                                        <Textarea
-                                                            value={selectedNode.data.config.text || ''}
-                                                            onChange={e => updateConfig('text', e.target.value)}
-                                                            placeholder="Your message here..."
-                                                            className="text-xs"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {selectedNode.data.type === 'delay' && (
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Duration (ms)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={selectedNode.data.config.duration || 1000}
-                                                        onChange={e => updateConfig('duration', parseInt(e.target.value))}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {selectedNode.data.type === 'loop' && (
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Field to iterate (optional)</Label>
-                                                    <Input
-                                                        value={selectedNode.data.config.field || ''}
-                                                        onChange={e => updateConfig('field', e.target.value)}
-                                                        placeholder="e.g. results"
-                                                    />
-                                                    <p className="text-[10px] text-muted-foreground italic">
-                                                        If empty, it tries to iterate over the entire input data.
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            {selectedNode.data.type === 'switch' && (
-                                                <div className="space-y-4">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Field to Match</Label>
+                                                        <Label className="text-xs">Field to iterate (optional)</Label>
                                                         <Input
                                                             value={selectedNode.data.config.field || ''}
                                                             onChange={e => updateConfig('field', e.target.value)}
-                                                            placeholder="e.g. status"
+                                                            placeholder="e.g. results"
                                                         />
+                                                        <p className="text-[10px] text-muted-foreground italic">
+                                                            If empty, it tries to iterate over the entire input data.
+                                                        </p>
                                                     </div>
-                                                    <div className="space-y-2">
+                                                )}
+
+                                                {selectedNode.data.type === 'switch' && (
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Field to Match</Label>
+                                                            <Input
+                                                                value={selectedNode.data.config.field || ''}
+                                                                onChange={e => updateConfig('field', e.target.value)}
+                                                                placeholder="e.g. status"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <Label className="text-xs font-bold">Cases</Label>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 px-2 text-[10px]"
+                                                                    onClick={() => {
+                                                                        const newCases = [...(selectedNode.data.config.cases || [])];
+                                                                        newCases.push({ value: '', handle: `case_${Date.now()}` });
+                                                                        updateConfig('cases', newCases);
+                                                                    }}
+                                                                >
+                                                                    <Plus size={10} className="mr-1" /> Add
+                                                                </Button>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {(selectedNode.data.config.cases || []).map((c: any, i: number) => (
+                                                                    <div key={i} className="flex gap-1 items-center">
+                                                                        <Input
+                                                                            className="h-8 text-xs flex-1"
+                                                                            value={c.value}
+                                                                            onChange={e => {
+                                                                                const newCases = [...selectedNode.data.config.cases];
+                                                                                newCases[i].value = e.target.value;
+                                                                                updateConfig('cases', newCases);
+                                                                            }}
+                                                                            placeholder="Value"
+                                                                        />
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 text-red-400"
+                                                                            onClick={() => {
+                                                                                const newCases = selectedNode.data.config.cases.filter((_: any, idx: number) => idx !== i);
+                                                                                updateConfig('cases', newCases);
+                                                                            }}
+                                                                        >
+                                                                            <Trash size={12} />
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {selectedNode.data.type === 'ai-agent' && (
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">System Instructions (Optional)</Label>
+                                                            <Textarea
+                                                                value={selectedNode.data.config.systemPrompt || ''}
+                                                                onChange={e => updateConfig('systemPrompt', e.target.value)}
+                                                                placeholder="You are a helpful assistant..."
+                                                                className="text-xs h-20"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">User Prompt</Label>
+                                                            <Textarea
+                                                                value={selectedNode.data.config.prompt || ''}
+                                                                onChange={e => updateConfig('prompt', e.target.value)}
+                                                                placeholder="Summarize this: {{prev_node.data}}"
+                                                                className="text-xs h-32"
+                                                            />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Model</Label>
+                                                                <select
+                                                                    className="w-full text-[10px] h-7 border rounded"
+                                                                    value={selectedNode.data.config.model || 'gpt-4o'}
+                                                                    onChange={e => updateConfig('model', e.target.value)}
+                                                                >
+                                                                    <option value="gpt-4o">GPT-4o</option>
+                                                                    <option value="gpt-3.5-turbo">GPT-3.5</option>
+                                                                    <option value="claude-3-sonnet">Claude 3</option>
+                                                                </select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Temperature</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    step="0.1"
+                                                                    className="h-7 text-[10px]"
+                                                                    value={selectedNode.data.config.temperature || 0.7}
+                                                                    onChange={e => updateConfig('temperature', parseFloat(e.target.value))}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {selectedNode.data.type === 'if' && (
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs">Logic</Label>
+                                                            <select
+                                                                className="w-full text-xs h-8 border rounded px-1"
+                                                                value={selectedNode.data.config.logic || 'AND'}
+                                                                onChange={e => updateConfig('logic', e.target.value)}
+                                                            >
+                                                                <option value="AND">AND (All must match)</option>
+                                                                <option value="OR">OR (Any must match)</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <Label className="text-xs font-bold">Conditions</Label>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 px-2 text-[10px]"
+                                                                    onClick={() => {
+                                                                        const newConds = [...(selectedNode.data.config.conditions || [])];
+                                                                        newConds.push({ field: '', operator: 'equals', value: '' });
+                                                                        updateConfig('conditions', newConds);
+                                                                    }}
+                                                                >
+                                                                    <Plus size={10} className="mr-1" /> Add
+                                                                </Button>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {(selectedNode.data.config.conditions || []).map((c: any, i: number) => (
+                                                                    <div key={i} className="flex gap-1 items-center border p-2 rounded relative group bg-slate-50/50">
+                                                                        <div className="grid grid-cols-1 gap-1 flex-1">
+                                                                            <Input
+                                                                                className="h-7 text-[10px]"
+                                                                                placeholder="Field (e.g. status)"
+                                                                                value={c.field}
+                                                                                onChange={e => {
+                                                                                    const newConds = [...selectedNode.data.config.conditions];
+                                                                                    newConds[i].field = e.target.value;
+                                                                                    updateConfig('conditions', newConds);
+                                                                                }}
+                                                                            />
+                                                                            <select
+                                                                                className="h-7 text-[10px] border rounded"
+                                                                                value={c.operator}
+                                                                                onChange={e => {
+                                                                                    const newConds = [...selectedNode.data.config.conditions];
+                                                                                    newConds[i].operator = e.target.value;
+                                                                                    updateConfig('conditions', newConds);
+                                                                                }}
+                                                                            >
+                                                                                <option value="equals">Equals</option>
+                                                                                <option value="contains">Contains</option>
+                                                                                <option value="greaterThan">Greater Than</option>
+                                                                                <option value="lessThan">Less Than</option>
+                                                                            </select>
+                                                                            <Input
+                                                                                className="h-7 text-[10px]"
+                                                                                placeholder="Value"
+                                                                                value={c.value}
+                                                                                onChange={e => {
+                                                                                    const newConds = [...selectedNode.data.config.conditions];
+                                                                                    newConds[i].value = e.target.value;
+                                                                                    updateConfig('conditions', newConds);
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-6 w-6 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                            onClick={() => {
+                                                                                const newConds = selectedNode.data.config.conditions.filter((_: any, idx: number) => idx !== i);
+                                                                                updateConfig('conditions', newConds);
+                                                                            }}
+                                                                        >
+                                                                            <Trash size={10} />
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {selectedNode.data.type === 'set' && (
+                                                    <div className="space-y-4">
                                                         <div className="flex justify-between items-center">
-                                                            <Label className="text-xs font-bold">Cases</Label>
+                                                            <Label className="text-xs font-bold">Variables to Set</Label>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="h-6 px-2 text-[10px]"
                                                                 onClick={() => {
-                                                                    const newCases = [...(selectedNode.data.config.cases || [])];
-                                                                    newCases.push({ value: '', handle: `case_${Date.now()}` });
-                                                                    updateConfig('cases', newCases);
+                                                                    const newFields = [...(selectedNode.data.config.fields || [])];
+                                                                    newFields.push({ key: '', value: '' });
+                                                                    updateConfig('fields', newFields);
                                                                 }}
                                                             >
                                                                 <Plus size={10} className="mr-1" /> Add
                                                             </Button>
                                                         </div>
                                                         <div className="space-y-2">
-                                                            {(selectedNode.data.config.cases || []).map((c: any, i: number) => (
-                                                                <div key={i} className="flex gap-1 items-center">
-                                                                    <Input
-                                                                        className="h-8 text-xs flex-1"
-                                                                        value={c.value}
-                                                                        onChange={e => {
-                                                                            const newCases = [...selectedNode.data.config.cases];
-                                                                            newCases[i].value = e.target.value;
-                                                                            updateConfig('cases', newCases);
-                                                                        }}
-                                                                        placeholder="Value"
-                                                                    />
+                                                            {(selectedNode.data.config.fields || []).map((f: any, i: number) => (
+                                                                <div key={i} className="flex gap-1 items-start group">
+                                                                    <div className="grid grid-cols-2 gap-1 flex-1">
+                                                                        <Input
+                                                                            className="h-8 text-xs font-mono"
+                                                                            placeholder="Key"
+                                                                            value={f.key}
+                                                                            onChange={e => {
+                                                                                const newFields = [...selectedNode.data.config.fields];
+                                                                                newFields[i].key = e.target.value;
+                                                                                updateConfig('fields', newFields);
+                                                                            }}
+                                                                        />
+                                                                        <Input
+                                                                            className="h-8 text-xs"
+                                                                            placeholder="Value"
+                                                                            value={f.value}
+                                                                            onChange={e => {
+                                                                                const newFields = [...selectedNode.data.config.fields];
+                                                                                newFields[i].value = e.target.value;
+                                                                                updateConfig('fields', newFields);
+                                                                            }}
+                                                                        />
+                                                                    </div>
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        className="h-8 w-8 text-red-400"
+                                                                        className="h-8 w-8 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                         onClick={() => {
-                                                                            const newCases = selectedNode.data.config.cases.filter((_: any, idx: number) => idx !== i);
-                                                                            updateConfig('cases', newCases);
+                                                                            const newFields = selectedNode.data.config.fields.filter((_: any, idx: number) => idx !== i);
+                                                                            updateConfig('fields', newFields);
                                                                         }}
                                                                     >
                                                                         <Trash size={12} />
@@ -686,289 +889,97 @@ export function WorkflowBuilder({ id }: { id: string }) {
                                                             ))}
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {selectedNode.data.type === 'ai-agent' && (
-                                                <div className="space-y-3">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">System Instructions (Optional)</Label>
-                                                        <Textarea
-                                                            value={selectedNode.data.config.systemPrompt || ''}
-                                                            onChange={e => updateConfig('systemPrompt', e.target.value)}
-                                                            placeholder="You are a helpful assistant..."
-                                                            className="text-xs h-20"
-                                                        />
+                                                {/* Variables Helper */}
+                                                <div className="mt-8 border-t pt-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Available Variables</h4>
+                                                        <div className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded">Click to copy</div>
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">User Prompt</Label>
-                                                        <Textarea
-                                                            value={selectedNode.data.config.prompt || ''}
-                                                            onChange={e => updateConfig('prompt', e.target.value)}
-                                                            placeholder="Summarize this: {{prev_node.data}}"
-                                                            className="text-xs h-32"
-                                                        />
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[10px]">Model</Label>
-                                                            <select
-                                                                className="w-full text-[10px] h-7 border rounded"
-                                                                value={selectedNode.data.config.model || 'gpt-4o'}
-                                                                onChange={e => updateConfig('model', e.target.value)}
-                                                            >
-                                                                <option value="gpt-4o">GPT-4o</option>
-                                                                <option value="gpt-3.5-turbo">GPT-3.5</option>
-                                                                <option value="claude-3-sonnet">Claude 3</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[10px]">Temperature</Label>
-                                                            <Input
-                                                                type="number"
-                                                                step="0.1"
-                                                                className="h-7 text-[10px]"
-                                                                value={selectedNode.data.config.temperature || 0.7}
-                                                                onChange={e => updateConfig('temperature', parseFloat(e.target.value))}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {selectedNode.data.type === 'if' && (
-                                                <div className="space-y-4">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Logic</Label>
-                                                        <select
-                                                            className="w-full text-xs h-8 border rounded px-1"
-                                                            value={selectedNode.data.config.logic || 'AND'}
-                                                            onChange={e => updateConfig('logic', e.target.value)}
-                                                        >
-                                                            <option value="AND">AND (All must match)</option>
-                                                            <option value="OR">OR (Any must match)</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <Label className="text-xs font-bold">Conditions</Label>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-6 px-2 text-[10px]"
+                                                    <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                                                        {nodes.filter(n => n.id !== selectedNode.id).map(node => (
+                                                            <div
+                                                                key={node.id}
+                                                                className="flex items-center justify-between p-2 rounded border bg-slate-50 hover:bg-slate-100 cursor-pointer group transition-colors"
                                                                 onClick={() => {
-                                                                    const newConds = [...(selectedNode.data.config.conditions || [])];
-                                                                    newConds.push({ field: '', operator: 'equals', value: '' });
-                                                                    updateConfig('conditions', newConds);
+                                                                    navigator.clipboard.writeText(`{{${node.id}}}`);
+                                                                    toast.success('Copied variable tag!');
                                                                 }}
                                                             >
-                                                                <Plus size={10} className="mr-1" /> Add
-                                                            </Button>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            {(selectedNode.data.config.conditions || []).map((c: any, i: number) => (
-                                                                <div key={i} className="flex gap-1 items-center border p-2 rounded relative group bg-slate-50/50">
-                                                                    <div className="grid grid-cols-1 gap-1 flex-1">
-                                                                        <Input
-                                                                            className="h-7 text-[10px]"
-                                                                            placeholder="Field (e.g. status)"
-                                                                            value={c.field}
-                                                                            onChange={e => {
-                                                                                const newConds = [...selectedNode.data.config.conditions];
-                                                                                newConds[i].field = e.target.value;
-                                                                                updateConfig('conditions', newConds);
-                                                                            }}
-                                                                        />
-                                                                        <select
-                                                                            className="h-7 text-[10px] border rounded"
-                                                                            value={c.operator}
-                                                                            onChange={e => {
-                                                                                const newConds = [...selectedNode.data.config.conditions];
-                                                                                newConds[i].operator = e.target.value;
-                                                                                updateConfig('conditions', newConds);
-                                                                            }}
-                                                                        >
-                                                                            <option value="equals">Equals</option>
-                                                                            <option value="contains">Contains</option>
-                                                                            <option value="greaterThan">Greater Than</option>
-                                                                            <option value="lessThan">Less Than</option>
-                                                                        </select>
-                                                                        <Input
-                                                                            className="h-7 text-[10px]"
-                                                                            placeholder="Value"
-                                                                            value={c.value}
-                                                                            onChange={e => {
-                                                                                const newConds = [...selectedNode.data.config.conditions];
-                                                                                newConds[i].value = e.target.value;
-                                                                                updateConfig('conditions', newConds);
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-6 w-6 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                        onClick={() => {
-                                                                            const newConds = selectedNode.data.config.conditions.filter((_: any, idx: number) => idx !== i);
-                                                                            updateConfig('conditions', newConds);
-                                                                        }}
-                                                                    >
-                                                                        <Trash size={10} />
-                                                                    </Button>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[11px] font-bold text-slate-700">{node.data.label || node.type}</span>
+                                                                    <span className="text-[9px] text-muted-foreground font-mono">ID: {node.id}</span>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {selectedNode.data.type === 'set' && (
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="text-xs font-bold">Variables to Set</Label>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-6 px-2 text-[10px]"
-                                                            onClick={() => {
-                                                                const newFields = [...(selectedNode.data.config.fields || [])];
-                                                                newFields.push({ key: '', value: '' });
-                                                                updateConfig('fields', newFields);
-                                                            }}
-                                                        >
-                                                            <Plus size={10} className="mr-1" /> Add
-                                                        </Button>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {(selectedNode.data.config.fields || []).map((f: any, i: number) => (
-                                                            <div key={i} className="flex gap-1 items-start group">
-                                                                <div className="grid grid-cols-2 gap-1 flex-1">
-                                                                    <Input
-                                                                        className="h-8 text-xs font-mono"
-                                                                        placeholder="Key"
-                                                                        value={f.key}
-                                                                        onChange={e => {
-                                                                            const newFields = [...selectedNode.data.config.fields];
-                                                                            newFields[i].key = e.target.value;
-                                                                            updateConfig('fields', newFields);
-                                                                        }}
-                                                                    />
-                                                                    <Input
-                                                                        className="h-8 text-xs"
-                                                                        placeholder="Value"
-                                                                        value={f.value}
-                                                                        onChange={e => {
-                                                                            const newFields = [...selectedNode.data.config.fields];
-                                                                            newFields[i].value = e.target.value;
-                                                                            updateConfig('fields', newFields);
-                                                                        }}
-                                                                    />
+                                                                <div className="text-[10px] font-mono text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    {"{{"}{node.id}{"}}"}
                                                                 </div>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                    onClick={() => {
-                                                                        const newFields = selectedNode.data.config.fields.filter((_: any, idx: number) => idx !== i);
-                                                                        updateConfig('fields', newFields);
-                                                                    }}
-                                                                >
-                                                                    <Trash size={12} />
-                                                                </Button>
                                                             </div>
                                                         ))}
+                                                        {nodes.length <= 1 && (
+                                                            <div className="text-center py-4 text-[10px] text-muted-foreground italic">
+                                                                Add more nodes to see variables.
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            )}
-
-                                            {/* Variables Helper */}
-                                            <div className="mt-8 border-t pt-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Available Variables</h4>
-                                                    <div className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded">Click to copy</div>
-                                                </div>
-                                                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                                                    {nodes.filter(n => n.id !== selectedNode.id).map(node => (
-                                                        <div
-                                                            key={node.id}
-                                                            className="flex items-center justify-between p-2 rounded border bg-slate-50 hover:bg-slate-100 cursor-pointer group transition-colors"
-                                                            onClick={() => {
-                                                                navigator.clipboard.writeText(`{{${node.id}}}`);
-                                                                toast.success('Copied variable tag!');
-                                                            }}
-                                                        >
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[11px] font-bold text-slate-700">{node.data.label || node.type}</span>
-                                                                <span className="text-[9px] text-muted-foreground font-mono">ID: {node.id}</span>
-                                                            </div>
-                                                            <div className="text-[10px] font-mono text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                {"{{"}{node.id}{"}}"}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    {nodes.length <= 1 && (
-                                                        <div className="text-center py-4 text-[10px] text-muted-foreground italic">
-                                                            Add more nodes to see variables.
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                {executionResult && executionResult.output && executionResult.output[selectedNode.id] && (
+                                                    <div className="mt-8 border-t pt-4">
+                                                        <h4 className="font-semibold text-xs text-muted-foreground uppercase mb-2">Last Output</h4>
+                                                        <pre className="bg-slate-50 p-2 rounded border text-[10px] overflow-auto max-h-40 font-mono">
+                                                            {JSON.stringify(executionResult.output[selectedNode.id], null, 2)}
+                                                        </pre>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {executionResult && executionResult.output && executionResult.output[selectedNode.id] && (
-                                                <div className="mt-8 border-t pt-4">
-                                                    <h4 className="font-semibold text-xs text-muted-foreground uppercase mb-2">Last Output</h4>
-                                                    <pre className="bg-slate-50 p-2 rounded border text-[10px] overflow-auto max-h-40 font-mono">
-                                                        {JSON.stringify(executionResult.output[selectedNode.id], null, 2)}
-                                                    </pre>
-                                                </div>
-                                            )}
                                         </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
+                                        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
+                                            <Settings size={24} />
+                                        </div>
+                                        <p className="text-sm font-medium text-slate-400">Select a node to configure its properties</p>
                                     </div>
-                                </>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
-                                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
-                                        <Settings size={24} />
-                                    </div>
-                                    <p className="text-sm font-medium text-slate-400">Select a node to configure its properties</p>
-                                </div>
-                            )}
-                        </TabsContent>
+                                )}
+                            </TabsContent>
 
-                        <TabsContent value="history" className="flex-1 overflow-y-auto p-4 m-0">
-                            <div className="space-y-3">
-                                <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest mb-4">Recent Executions</h4>
-                                <div className="space-y-2">
-                                    {executions.map(ex => (
-                                        <div
-                                            key={ex.id}
-                                            className="p-3 border rounded-lg hover:border-primary cursor-pointer transition-all bg-card shadow-sm"
-                                            onClick={() => router.push(`/app/executions/${ex.id}`)}
-                                        >
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ex.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
-                                                    ex.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                    {ex.status}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground font-mono">#{ex.id.slice(0, 6)}</span>
+                            <TabsContent value="history" className="flex-1 overflow-y-auto p-4 m-0">
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest mb-4">Recent Executions</h4>
+                                    <div className="space-y-2">
+                                        {executions.map(ex => (
+                                            <div
+                                                key={ex.id}
+                                                className="p-3 border rounded-lg hover:border-primary cursor-pointer transition-all bg-card shadow-sm"
+                                                onClick={() => router.push(`/app/executions/${ex.id}`)}
+                                            >
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ex.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
+                                                        ex.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {ex.status}
+                                                    </span>
+                                                    <span className="text-[10px] text-muted-foreground font-mono">#{ex.id.slice(0, 6)}</span>
+                                                </div>
+                                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                    <Clock size={10} /> {new Date(ex.startedAt).toLocaleString()}
+                                                </div>
                                             </div>
-                                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                <Clock size={10} /> {new Date(ex.startedAt).toLocaleString()}
+                                        ))}
+                                        {executions.length === 0 && (
+                                            <div className="text-center py-10 opacity-50">
+                                                <p className="text-xs">No execution history found.</p>
                                             </div>
-                                        </div>
-                                    ))}
-                                    {executions.length === 0 && (
-                                        <div className="text-center py-10 opacity-50">
-                                            <p className="text-xs">No execution history found.</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                </div>
-                )}
-            </div>
+                            </TabsContent>
+                        </Tabs >
+                    </div >
+                )
+                }
+            </div >
             <ConfirmDialog
                 open={confirmDeleteOpen}
                 onOpenChange={setConfirmDeleteOpen}
@@ -976,6 +987,6 @@ export function WorkflowBuilder({ id }: { id: string }) {
                 description="Are you sure you want to delete this workflow? This will permanently remove all nodes, edges, versions and execution history."
                 onConfirm={deleteWorkflow}
             />
-        </div>
+        </div >
     );
 }
