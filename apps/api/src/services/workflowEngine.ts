@@ -179,6 +179,12 @@ export class WorkflowEngine {
                             user: process.env.SMTP_USER,
                             pass: process.env.SMTP_PASS,
                         },
+                        // Timeout settings to prevent hanging
+                        connectionTimeout: 10000, // 10 seconds
+                        greetingTimeout: 5000,
+                        socketTimeout: 10000,
+                        debug: true, // Show SMTP traffic in logs
+                        logger: true
                     });
 
                     await transporter.sendMail({
