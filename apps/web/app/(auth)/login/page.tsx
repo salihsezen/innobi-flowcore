@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginSchema } from "@/lib/shared";
+import { LoginSchema } from "@automation/shared";
 import { useRouter } from "next/navigation";
 import { api, setToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex justify-center items-center main-h-screen h-[100vh] bg-background">
+        <div className="flex justify-center items-center min-h-screen h-[100vh] bg-background">
             <Card className="w-[350px]">
                 <CardHeader>
                     <CardTitle>Login</CardTitle>

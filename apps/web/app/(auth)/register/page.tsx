@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RegisterSchema } from "@/lib/shared";
+import { RegisterSchema } from "@automation/shared";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex justify-center items-center main-h-screen h-[100vh] bg-background">
+        <div className="flex justify-center items-center min-h-screen h-[100vh] bg-background">
             <Card className="w-[350px]">
                 <CardHeader>
                     <CardTitle>Register</CardTitle>

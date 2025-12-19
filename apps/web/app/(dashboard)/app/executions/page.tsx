@@ -17,7 +17,7 @@ export default function ExecutionsPage() {
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'COMPLETED': return <CheckCircle2 size={16} className="text-green-500" />;
+            case 'SUCCESS': return <CheckCircle2 size={16} className="text-green-500" />;
             case 'FAILED': return <XCircle size={16} className="text-red-500" />;
             case 'RUNNING': return <Activity size={16} className="text-blue-500 animate-pulse" />;
             default: return <Clock size={16} className="text-slate-400" />;
@@ -49,7 +49,7 @@ export default function ExecutionsPage() {
                         <div className="flex items-center gap-6">
                             <div className={cn(
                                 "flex items-center justify-center p-3 rounded-xl bg-background/20 group-hover:bg-primary/10 transition-colors",
-                                ex.status === 'COMPLETED' ? "text-green-500" : ex.status === 'FAILED' ? "text-red-500" : "text-blue-500"
+                                ex.status === 'SUCCESS' ? "text-green-500" : ex.status === 'FAILED' ? "text-red-500" : "text-blue-500"
                             )}>
                                 {getStatusIcon(ex.status)}
                             </div>
@@ -61,7 +61,7 @@ export default function ExecutionsPage() {
                                     </span>
                                     <div className={cn(
                                         "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                                        ex.status === 'COMPLETED' ? "bg-green-500/10 text-green-600" :
+                                        ex.status === 'SUCCESS' ? "bg-green-500/10 text-green-600" :
                                             ex.status === 'FAILED' ? "bg-red-500/10 text-red-600" : "bg-blue-500/10 text-blue-600"
                                     )}>
                                         {ex.status}

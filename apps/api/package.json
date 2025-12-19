@@ -10,6 +10,7 @@
         "lint": "eslint src/**/*.ts"
     },
     "dependencies": {
+        "@automation/shared": "file:../../packages/shared",
         "@prisma/client": "^5.22.0",
         "bcryptjs": "^2.4.3",
         "bullmq": "^4.6.0",
