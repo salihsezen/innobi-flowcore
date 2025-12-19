@@ -1,12 +1,13 @@
 "use client";
-import React from 'react';
+import React, { use } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import { WorkflowBuilder } from '@/components/builder/WorkflowBuilder';
 
-export default function BuilderPage({ params }: { params: { id: string } }) {
+export default function BuilderPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     return (
         <ReactFlowProvider>
-            <WorkflowBuilder id={params.id} />
+            <WorkflowBuilder id={id} />
         </ReactFlowProvider>
     );
 }

@@ -1,15 +1,16 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { api } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-export default function ExecutionDetail({ params }: { params: { id: string } }) {
+export default function ExecutionDetail({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const [execution, setExecution] = useState<any>(null);
 
     useEffect(() => {
-        api.get(`/executions/${params.id}`).then(res => setExecution(res.data));
-    }, [params.id]);
+        api.get(`/executions/${id}`).then(res => setExecution(res.data));
+    }, [id]);
 
     if (!execution) return <div className="p-8">Loading...</div>;
 
