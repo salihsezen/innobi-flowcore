@@ -52,28 +52,28 @@ async function main() {
     console.log('Users seeded.');
 
     // 2. Define Templates
-    
+
     // --- Template 1: GenAI - Intelligent Customer Support ---
     const supportTemplate = {
         nodes: [
             { id: 'start', type: NodeType.WEBHOOK_TRIGGER, position: { x: 50, y: 300 }, data: { label: 'Inbound Chat', config: { path: '/chat-hook', method: 'POST' } } },
-            { id: 'classify', type: NodeType.AI_AGENT, position: { x: 300, y: 300 }, data: { label: 'Classify Intent', config: { prompt: 'Analyze this message: {{start.message}}. Classify into: support, sales, or general.', model: 'gpt-4' } } },
-            { id: 'router', type: NodeType.SWITCH, position: { x: 600, y: 300 }, data: { label: 'Route Intent', config: { field: 'classify.response', cases: [{ value: 'support', handle: 'support' }, { value: 'sales', handle: 'sales' }] } } },
-            
+            { id: 'classify', type: NodeType.AI_AGENT, position: { x: 450, y: 300 }, data: { label: 'Classify Intent', config: { prompt: 'Analyze this message: {{start.message}}. Classify into: support, sales, or general.', model: 'gpt-4' } } },
+            { id: 'router', type: NodeType.SWITCH, position: { x: 850, y: 300 }, data: { label: 'Route Intent', config: { field: 'classify.response', cases: [{ value: 'support', handle: 'support' }, { value: 'sales', handle: 'sales' }] } } },
+
             // Support Branch
-            { id: 'kb_search', type: NodeType.HTTP_REQUEST, position: { x: 900, y: 100 }, data: { label: 'Search KB', config: { url: 'https://api.internal.kb/search?q={{start.message}}', method: 'GET' } } },
-            { id: 'kb_answer', type: NodeType.AI_AGENT, position: { x: 1200, y: 100 }, data: { label: 'Draft Answer', config: { prompt: 'Using these docs: {{kb_search.data}}, answer this: {{start.message}}' } } },
-            
+            { id: 'kb_search', type: NodeType.HTTP_REQUEST, position: { x: 1250, y: 100 }, data: { label: 'Search KB', config: { url: 'https://api.internal.kb/search?q={{start.message}}', method: 'GET' } } },
+            { id: 'kb_answer', type: NodeType.AI_AGENT, position: { x: 1650, y: 100 }, data: { label: 'Draft Answer', config: { prompt: 'Using these docs: {{kb_search.data}}, answer this: {{start.message}}' } } },
+
             // Sales Branch
-            { id: 'crm_lookup', type: NodeType.HTTP_REQUEST, position: { x: 900, y: 500 }, data: { label: 'Check CRM', config: { url: 'https://api.hubspot.com/contacts/{{start.email}}', method: 'GET' } } },
-            { id: 'sales_alert', type: NodeType.SLACK_MESSAGE, position: { x: 1200, y: 500 }, data: { label: 'Notify Sales', config: { webhookUrl: 'https://hooks.slack.com/...', text: 'Hot lead detected: {{start.email}}' } } },
-            
+            { id: 'crm_lookup', type: NodeType.HTTP_REQUEST, position: { x: 1250, y: 500 }, data: { label: 'Check CRM', config: { url: 'https://api.hubspot.com/contacts/{{start.email}}', method: 'GET' } } },
+            { id: 'sales_alert', type: NodeType.SLACK_MESSAGE, position: { x: 1650, y: 500 }, data: { label: 'Notify Sales', config: { webhookUrl: 'https://hooks.slack.com/...', text: 'Hot lead detected: {{start.email}}' } } },
+
             // General Branch (Default)
-            { id: 'gen_chat', type: NodeType.AI_AGENT, position: { x: 900, y: 300 }, data: { label: 'General Chat', config: { prompt: 'Reply to: {{start.message}}' } } },
+            { id: 'gen_chat', type: NodeType.AI_AGENT, position: { x: 1250, y: 300 }, data: { label: 'General Chat', config: { prompt: 'Reply to: {{start.message}}' } } },
 
             // Merge & Reply
-            { id: 'merge', type: NodeType.MERGE, position: { x: 1500, y: 300 }, data: { label: 'Merge Responses' } },
-            { id: 'reply', type: NodeType.HTTP_REQUEST, position: { x: 1800, y: 300 }, data: { label: 'Send Reply', config: { url: '{{start.callback_url}}', method: 'POST', body: '{"text": "{{merge.data}}"}' } } },
+            { id: 'merge', type: NodeType.MERGE, position: { x: 2100, y: 300 }, data: { label: 'Merge Responses' } },
+            { id: 'reply', type: NodeType.HTTP_REQUEST, position: { x: 2500, y: 300 }, data: { label: 'Send Reply', config: { url: '{{start.callback_url}}', method: 'POST', body: '{"text": "{{merge.data}}"}' } } },
         ],
         edges: [
             { id: 'e1', source: 'start', target: 'classify' },
@@ -94,14 +94,14 @@ async function main() {
     const newsTemplate = {
         nodes: [
             { id: 'timer', type: NodeType.SCHEDULE_TRIGGER, position: { x: 50, y: 300 }, data: { label: 'Every Morning', config: { cron: '0 8 * * *' } } },
-            { id: 'fetch_tech', type: NodeType.HTTP_REQUEST, position: { x: 300, y: 150 }, data: { label: 'Fetch Tech News', config: { url: 'https://newsapi.org/v2/top-headlines?category=technology', method: 'GET' } } },
-            { id: 'fetch_crypto', type: NodeType.HTTP_REQUEST, position: { x: 300, y: 450 }, data: { label: 'Fetch Crypto News', config: { url: 'https://api.coindesk.com/v1/news', method: 'GET' } } },
-            { id: 'combiner', type: NodeType.MERGE, position: { x: 600, y: 300 }, data: { label: 'Combine Lists' } },
-            { id: 'iterator', type: NodeType.LOOP, position: { x: 800, y: 300 }, data: { label: 'For Each Article', config: { field: 'combiner' } } },
-            { id: 'summarizer', type: NodeType.AI_AGENT, position: { x: 1000, y: 300 }, data: { label: 'Summarize', config: { prompt: 'Summarize in 2 sentences: {{iterator.content}}' } } },
-            { id: 'filter_bad', type: NodeType.IF, position: { x: 1250, y: 300 }, data: { label: 'Is Important?', config: { conditions: [{ field: 'summarizer.response', operator: 'contains', value: 'important' }] } } },
-            { id: 'digest_builder', type: NodeType.CODE, position: { x: 1500, y: 300 }, data: { label: 'Build Digest HTML', config: { code: 'return context.digest + "<li>" + input.title + "</li>"' } } },
-            { id: 'send_email', type: NodeType.SEND_EMAIL, position: { x: 1800, y: 300 }, data: { label: 'Send Digest', config: { to: 'team@company.com', subject: 'Daily Intelligence', body: '{{digest_builder.result}}' } } }
+            { id: 'fetch_tech', type: NodeType.HTTP_REQUEST, position: { x: 450, y: 150 }, data: { label: 'Fetch Tech News', config: { url: 'https://newsapi.org/v2/top-headlines?category=technology', method: 'GET' } } },
+            { id: 'fetch_crypto', type: NodeType.HTTP_REQUEST, position: { x: 450, y: 450 }, data: { label: 'Fetch Crypto News', config: { url: 'https://api.coindesk.com/v1/news', method: 'GET' } } },
+            { id: 'combiner', type: NodeType.MERGE, position: { x: 850, y: 300 }, data: { label: 'Combine Lists' } },
+            { id: 'iterator', type: NodeType.LOOP, position: { x: 1250, y: 300 }, data: { label: 'For Each Article', config: { field: 'combiner' } } },
+            { id: 'summarizer', type: NodeType.AI_AGENT, position: { x: 1650, y: 300 }, data: { label: 'Summarize', config: { prompt: 'Summarize in 2 sentences: {{iterator.content}}' } } },
+            { id: 'filter_bad', type: NodeType.IF, position: { x: 2050, y: 300 }, data: { label: 'Is Important?', config: { conditions: [{ field: 'summarizer.response', operator: 'contains', value: 'important' }] } } },
+            { id: 'digest_builder', type: NodeType.CODE, position: { x: 2450, y: 300 }, data: { label: 'Build Digest HTML', config: { code: 'return context.digest + "<li>" + input.title + "</li>"' } } },
+            { id: 'send_email', type: NodeType.SEND_EMAIL, position: { x: 2850, y: 300 }, data: { label: 'Send Digest', config: { to: 'team@company.com', subject: 'Daily Intelligence', body: '{{digest_builder.result}}' } } }
         ],
         edges: [
             { id: 'e1', source: 'timer', target: 'fetch_tech' },
@@ -120,20 +120,20 @@ async function main() {
     const leadTemplate = {
         nodes: [
             { id: 'new_lead', type: NodeType.WEBHOOK_TRIGGER, position: { x: 50, y: 300 }, data: { label: 'New Lead Form' } },
-            { id: 'format', type: NodeType.SET, position: { x: 250, y: 300 }, data: { label: 'Format Data', config: { fields: [{ key: 'email', value: '{{new_lead.body.email}}' }] } } },
-            { id: 'enrich', type: NodeType.HTTP_REQUEST, position: { x: 450, y: 300 }, data: { label: 'Clearbit Enrichment', config: { url: 'https://person.clearbit.com/v2/combined/find?email={{format.email}}' } } },
-            { id: 'scorer', type: NodeType.AI_AGENT, position: { x: 700, y: 300 }, data: { label: 'AI Score Lead', config: { prompt: 'Score this lead 0-100 based on title {{enrich.employment.title}} and company size {{enrich.company.metrics.employees}}. Return only number.' } } },
-            { id: 'check_score', type: NodeType.IF, position: { x: 950, y: 300 }, data: { label: 'Score > 80?', config: { conditions: [{ field: 'scorer.response', operator: 'greaterThan', value: '80' }] } } },
-            
+            { id: 'format', type: NodeType.SET, position: { x: 450, y: 300 }, data: { label: 'Format Data', config: { fields: [{ key: 'email', value: '{{new_lead.body.email}}' }] } } },
+            { id: 'enrich', type: NodeType.HTTP_REQUEST, position: { x: 850, y: 300 }, data: { label: 'Clearbit Enrichment', config: { url: 'https://person.clearbit.com/v2/combined/find?email={{format.email}}' } } },
+            { id: 'scorer', type: NodeType.AI_AGENT, position: { x: 1250, y: 300 }, data: { label: 'AI Score Lead', config: { prompt: 'Score this lead 0-100 based on title {{enrich.employment.title}} and company size {{enrich.company.metrics.employees}}. Return only number.' } } },
+            { id: 'check_score', type: NodeType.IF, position: { x: 1650, y: 300 }, data: { label: 'Score > 80?', config: { conditions: [{ field: 'scorer.response', operator: 'greaterThan', value: '80' }] } } },
+
             // High Priority
-            { id: 'slack_high', type: NodeType.SLACK_MESSAGE, position: { x: 1200, y: 200 }, data: { label: '🔥 Hot Lead Alert', config: { text: 'New High Value Lead: {{format.email}}' } } },
-            { id: 'crm_high', type: NodeType.HTTP_REQUEST, position: { x: 1450, y: 200 }, data: { label: 'Add to Pipedrive (High)', config: { url: 'https://api.pipedrive.com/deals', body: '{"priority": "high"}' } } },
-            
+            { id: 'slack_high', type: NodeType.SLACK_MESSAGE, position: { x: 2050, y: 150 }, data: { label: '🔥 Hot Lead Alert', config: { text: 'New High Value Lead: {{format.email}}' } } },
+            { id: 'crm_high', type: NodeType.HTTP_REQUEST, position: { x: 2450, y: 150 }, data: { label: 'Add to Pipedrive (High)', config: { url: 'https://api.pipedrive.com/deals', body: '{"priority": "high"}' } } },
+
             // Low Priority
-            { id: 'crm_low', type: NodeType.HTTP_REQUEST, position: { x: 1200, y: 400 }, data: { label: 'Add to Pipedrive (Low)', config: { url: 'https://api.pipedrive.com/deals', body: '{"priority": "low"}' } } },
-            { id: 'nurture_email', type: NodeType.SEND_EMAIL, position: { x: 1450, y: 400 }, data: { label: 'Welcome Email', config: { subject: 'Thanks for contacting us' } } },
-            { id: 'wait_3d', type: NodeType.DELAY, position: { x: 1700, y: 400 }, data: { label: 'Wait 3 Days', config: { duration: 259200000 } } },
-            { id: 'followup_email', type: NodeType.SEND_EMAIL, position: { x: 1950, y: 400 }, data: { label: 'Follow Up', config: { subject: 'Checking in...' } } }
+            { id: 'crm_low', type: NodeType.HTTP_REQUEST, position: { x: 2050, y: 450 }, data: { label: 'Add to Pipedrive (Low)', config: { url: 'https://api.pipedrive.com/deals', body: '{"priority": "low"}' } } },
+            { id: 'nurture_email', type: NodeType.SEND_EMAIL, position: { x: 2450, y: 450 }, data: { label: 'Welcome Email', config: { subject: 'Thanks for contacting us' } } },
+            { id: 'wait_3d', type: NodeType.DELAY, position: { x: 2850, y: 450 }, data: { label: 'Wait 3 Days', config: { duration: 259200000 } } },
+            { id: 'followup_email', type: NodeType.SEND_EMAIL, position: { x: 3250, y: 450 }, data: { label: 'Follow Up', config: { subject: 'Checking in...' } } }
         ],
         edges: [
             { id: 'e1', source: 'new_lead', target: 'format' },
@@ -153,16 +153,16 @@ async function main() {
     const socialTemplate = {
         nodes: [
             { id: 'manual', type: NodeType.MANUAL_TRIGGER, position: { x: 50, y: 250 }, data: { label: 'Start Generation' } },
-            { id: 'ideation', type: NodeType.AI_AGENT, position: { x: 250, y: 250 }, data: { label: 'Generate 5 Ideas', config: { prompt: 'Give me 5 viral tweet ideas about AI Agents.' } } },
-            { id: 'loop_ideas', type: NodeType.LOOP, position: { x: 500, y: 250 }, data: { label: 'Loop Ideas' } },
-            
+            { id: 'ideation', type: NodeType.AI_AGENT, position: { x: 450, y: 250 }, data: { label: 'Generate 5 Ideas', config: { prompt: 'Give me 5 viral tweet ideas about AI Agents.' } } },
+            { id: 'loop_ideas', type: NodeType.LOOP, position: { x: 850, y: 250 }, data: { label: 'Loop Ideas' } },
+
             // Parallel: Tweet & LinkedIn
-            { id: 'draft_tweet', type: NodeType.AI_AGENT, position: { x: 750, y: 150 }, data: { label: 'Draft Tweet' } },
-            { id: 'draft_linkedin', type: NodeType.AI_AGENT, position: { x: 750, y: 350 }, data: { label: 'Draft LinkedIn' } },
-            
-            { id: 'img_gen', type: NodeType.HTTP_REQUEST, position: { x: 1000, y: 250 }, data: { label: 'Gen Image (DALL-E)', config: { url: 'https://api.openai.com/v1/images/generations' } } },
-            
-            { id: 'approval', type: NodeType.SLACK_MESSAGE, position: { x: 1300, y: 250 }, data: { label: 'Request Approval', config: { text: 'New content ready for review.' } } }
+            { id: 'draft_tweet', type: NodeType.AI_AGENT, position: { x: 1250, y: 100 }, data: { label: 'Draft Tweet' } },
+            { id: 'draft_linkedin', type: NodeType.AI_AGENT, position: { x: 1250, y: 400 }, data: { label: 'Draft LinkedIn' } },
+
+            { id: 'img_gen', type: NodeType.HTTP_REQUEST, position: { x: 1650, y: 250 }, data: { label: 'Gen Image (DALL-E)', config: { url: 'https://api.openai.com/v1/images/generations' } } },
+
+            { id: 'approval', type: NodeType.SLACK_MESSAGE, position: { x: 2050, y: 250 }, data: { label: 'Request Approval', config: { text: 'New content ready for review.' } } }
         ],
         edges: [
             { id: 'e1', source: 'manual', target: 'ideation' },

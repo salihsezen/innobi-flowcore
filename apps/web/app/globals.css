@@ -6,20 +6,21 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 221 83% 53%;
+    --primary: 246 80% 60%;
+    /* Premium Indigo/Violet */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11.2%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
@@ -32,7 +33,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 246 80% 60%;
 
     --radius: 0.75rem;
 
@@ -42,37 +43,37 @@
   }
 
   .dark {
-    --background: 222 47% 16%;
-    --foreground: 210 40% 98%;
+    --background: 222 47% 11%;
+    --foreground: 213 31% 91%;
 
-    --card: 222 47% 18%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 213 31% 91%;
 
-    --popover: 222 47% 16%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 215 20.2% 65.1%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 16%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 217 33% 22%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 22%;
-    --muted-foreground: 215 20% 75%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217 33% 22%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 25%;
-    --input: 217 33% 25%;
-    --ring: 224 76% 48%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 224 71% 4%;
 
     /* Glass tokens */
-    --glass-background: rgba(45, 55, 72, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-background: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.05);
   }
 }
 
@@ -97,6 +98,26 @@
 }
 
 @layer components {
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
+  }
+
+  /* Premium Utilities */
   .glass-card {
     @apply bg-[var(--glass-background)] backdrop-blur-md border border-[var(--glass-border)] shadow-xl;
   }
@@ -106,26 +127,48 @@
   }
 
   .premium-shadow {
-    @apply shadow-2xl;
+    @apply shadow-2xl shadow-primary/10;
   }
 
-  .dark .premium-shadow {
-    @apply shadow-2xl;
+  /* React Flow Overrides */
+  .react-flow__node {
+    @apply border-none shadow-none !important;
+  }
+
+  .react-flow__handle {
+    @apply w-3 h-3 bg-primary border-2 border-background transition-colors hover:bg-white !important;
+  }
+
+  .react-flow__edge-path {
+    @apply stroke-slate-400 dark:stroke-slate-600 stroke-2 !important;
+  }
+
+  /* .react-flow__background removed to allow inline overrides */
+
+
+  .react-flow__controls {
+    @apply shadow-none border-none m-4 !important;
+  }
+
+  .react-flow__controls-button {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-none first:rounded-t-md last:rounded-b-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 !important;
+  }
+
+  .react-flow__minimap {
+    @apply rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden !important;
   }
 }
 
 /* Animations */
 @keyframes float {
-  0% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
 
   50% {
     transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
   }
 }
 

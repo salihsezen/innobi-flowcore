@@ -107,10 +107,10 @@ export default function WorkflowsPage() {
 
                         <div className="mt-6 flex items-center justify-between">
                             <div className={cn(
-                                "text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider",
+                                "text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest transition-colors border",
                                 wf.status === 'PUBLISHED'
-                                    ? "bg-green-500/10 text-green-600"
-                                    : "bg-muted text-muted-foreground"
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
                             )}>
                                 {wf.status}
                             </div>

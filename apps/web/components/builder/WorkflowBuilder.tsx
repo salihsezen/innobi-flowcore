@@ -21,8 +21,15 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { Save, Play, Plus, Trash, History, LayoutDashboard, Settings, Clock, Sparkles } from 'lucide-react';
+import { Save, Play, Plus, Trash, History, LayoutDashboard, Settings, Clock, Sparkles, ArrowLeft, X, Undo2, Redo2, Zap, Globe, ArrowRightLeft, Code, Mail, MessageSquare, Hourglass, Repeat, Database } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { useFlowHistory } from '@/hooks/useFlowHistory';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import dagre from 'dagre';
 import {
     Tabs,
@@ -97,6 +104,24 @@ const NODE_TYPES_LIST = [
     { type: 'merge', label: 'Merge', category: 'Logic' },
 ];
 
+const ICONS: Record<string, any> = {
+    'manual-trigger': Play,
+    'webhook-trigger': Zap,
+    'schedule-trigger': Clock,
+    'http-request': Globe,
+    'if': ArrowRightLeft,
+    'switch': ArrowRightLeft,
+    'set': Settings,
+    'code': Code,
+    'delay': Hourglass,
+    'loop': Repeat,
+    'send-email': Mail,
+    'slack-message': MessageSquare,
+    'ai-agent': Sparkles,
+    'database': Database,
+    'merge': ArrowRightLeft
+};
+
 import { useRouter } from 'next/navigation';
 
 export function WorkflowBuilder({ id }: { id: string }) {
@@ -112,6 +137,74 @@ export function WorkflowBuilder({ id }: { id: string }) {
     const [versions, setVersions] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [executions, setExecutions] = useState<any[]>([]);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+    // History & Undo/Redo
+    const { undo, redo, takeSnapshot, canUndo, canRedo } = useFlowHistory();
+    const isHistoryChange = useRef(false);
+
+    // Debounced snapshot saving
+    useEffect(() => {
+        if (isHistoryChange.current) {
+            isHistoryChange.current = false;
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            takeSnapshot(nodes, edges);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [nodes, edges, takeSnapshot]);
+
+    const onUndo = useCallback(() => {
+        const state = undo();
+        if (state) {
+            isHistoryChange.current = true;
+            setNodes(state.nodes);
+            setEdges(state.edges);
+        }
+    }, [undo, setNodes, setEdges]);
+
+    const onRedo = useCallback(() => {
+        const state = redo();
+        if (state) {
+            isHistoryChange.current = true;
+            setNodes(state.nodes);
+            setEdges(state.edges);
+        }
+    }, [redo, setNodes, setEdges]);
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
+                event.preventDefault();
+                if (event.shiftKey) {
+                    onRedo();
+                } else {
+                    onUndo();
+                }
+            }
+            if ((event.metaKey || event.ctrlKey) && event.key === 'y') {
+                event.preventDefault();
+                onRedo();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onUndo, onRedo]);
+
+    const deleteWorkflow = async () => {
+        try {
+            await api.delete(`/workflows/${id}`);
+            toast.success("Workflow deleted");
+            router.push('/app/workflows');
+        } catch {
+            toast.error("Failed to delete workflow");
+        }
+    };
 
     const fetchVersions = async () => {
         const res = await api.get(`/workflows/${id}/versions`);
@@ -292,694 +385,459 @@ export function WorkflowBuilder({ id }: { id: string }) {
         }
     };
 
-    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-    const deleteWorkflow = async () => {
-        try {
-            await api.delete(`/workflows/${id}`);
-            toast.success("Workflow deleted successfully");
-            router.push('/app/workflows');
-        } catch (err: any) {
-            toast.error(err.response?.data?.error || "Failed to delete workflow");
-        }
-    };
 
     return (
-        <div className="flex h-screen flex-col">
-            <div className="h-14 border-b bg-background flex items-center px-4 justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={() => router.push('/app/workflows')}>← Back</Button>
-                    <Input className="w-64" value={workflowName} onChange={e => setWorkflowName(e.target.value)} />
-                </div>
-                <div className="flex gap-2">
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm"><History size={16} className="mr-2" /> Versions</Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Workflow Versions</DialogTitle>
-                                <DialogDescription>
-                                    Snapshots of your workflow. Restoring will overwrite the current canvas.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <Button className="w-full" size="sm" onClick={createVersion}>Save Current as New Version</Button>
-                                <div className="max-h-[300px] overflow-y-auto space-y-2">
-                                    {versions.map(v => (
-                                        <div key={v.id} className="flex justify-between items-center p-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                            <div>
-                                                <div className="font-bold text-sm">Version {v.versionNumber}</div>
-                                                <div className="text-[10px] text-muted-foreground">{new Date(v.createdAt).toLocaleString()}</div>
+        <div className="h-full w-full relative bg-slate-50 dark:bg-slate-950 overflow-hidden font-inter select-none">
+            {/* Top Floating Header Island */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-5xl">
+                <div className="glass-card rounded-full px-2 py-2 flex items-center justify-between shadow-2xl animate-fade-in group hover:scale-[1.01] transition-transform duration-300">
+                    <div className="flex items-center gap-4 pl-4">
+                        <Button variant="ghost" size="icon" className="rounded-full w-8 h-8 hover:bg-slate-200/50" onClick={() => router.push('/app/workflows')}>
+                            <ArrowLeft size={16} />
+                        </Button>
+                        <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800" />
+                        <Input
+                            className="w-64 border-none shadow-none bg-transparent h-8 font-outfit font-bold text-lg focus-visible:ring-0 px-0"
+                            value={workflowName}
+                            onChange={e => setWorkflowName(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2 pr-2">
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="rounded-full text-xs font-medium text-muted-foreground hover:text-foreground">
+                                    <History size={14} className="mr-2" /> Versions
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px] glass-card border-white/20">
+                                <DialogHeader>
+                                    <DialogTitle>Workflow Versions</DialogTitle>
+                                    <DialogDescription>Snapshot history of your workflow.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <Button className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25" size="sm" onClick={createVersion}>
+                                        Save New Version
+                                    </Button>
+                                    <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                                        {versions.map(v => (
+                                            <div key={v.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                                <div>
+                                                    <div className="font-bold text-sm">Version {v.versionNumber}</div>
+                                                    <div className="text-[10px] text-muted-foreground">{new Date(v.createdAt).toLocaleString()}</div>
+                                                </div>
+                                                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => restoreVersion(v)}>Restore</Button>
                                             </div>
-                                            <Button variant="ghost" size="sm" onClick={() => restoreVersion(v)}>Restore</Button>
-                                        </div>
-                                    ))}
-                                    {versions.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No snapshots saved yet.</p>}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogContent>
+                        </Dialog>
 
-                    <Button variant="outline" size="sm" onClick={() => {
-                        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-                            nodes,
-                            edges
-                        );
-                        setNodes([...layoutedNodes]);
-                        setEdges([...layoutedEdges]);
-                    }}>
-                        <LayoutDashboard size={16} className="mr-2" /> Layout
-                    </Button>
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2" />
 
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setConfirmDeleteOpen(true)}>
-                        <Trash size={16} className="mr-2" /> Delete
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={saveWorkflow}><Save size={16} className="mr-2" /> Save</Button>
-                    <Button size="sm" onClick={runWorkflow}><Play size={16} className="mr-2" /> Run</Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="rounded-full w-8 h-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        onClick={onUndo}
+                                        disabled={!canUndo}
+                                    >
+                                        <Undo2 size={14} className={!canUndo ? 'opacity-30' : ''} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="rounded-full w-8 h-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        onClick={onRedo}
+                                        disabled={!canRedo}
+                                    >
+                                        <Redo2 size={14} className={!canRedo ? 'opacity-30' : ''} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2" />
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="secondary" size="icon" className="rounded-full w-9 h-9" onClick={() => {
+                                        const { nodes: lNodes, edges: lEdges } = getLayoutedElements(nodes, edges);
+                                        setNodes([...lNodes]);
+                                        setEdges([...lEdges]);
+                                    }}>
+                                        <LayoutDashboard size={15} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Auto Layout</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            className="rounded-full w-9 h-9 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            onClick={() => setConfirmDeleteOpen(true)}
+                        >
+                            <Trash size={15} />
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="rounded-full border-primary/20 hover:bg-primary/5 text-primary gap-2 ml-2"
+                            onClick={saveWorkflow}
+                        >
+                            <Save size={15} /> Save
+                        </Button>
+
+                        <Button
+                            className="rounded-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white shadow-lg shadow-indigo-500/25 gap-2 px-6 font-semibold"
+                            onClick={runWorkflow}
+                        >
+                            <Play size={15} className="fill-current" /> Run
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-                {/* Sidebar Library */}
-                <div className="w-56 border-r bg-slate-50 p-4 overflow-y-auto">
-                    <div className="font-semibold mb-3 text-xs text-slate-500 uppercase tracking-wider">Node Library</div>
-                    <Input
-                        placeholder="Search nodes..."
-                        className="mb-4 h-8 text-xs"
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <div className="space-y-4">
+            {/* Left Floating Dock - Node Library */}
+            <div className="absolute left-6 top-28 bottom-6 z-40 w-16 hover:w-64 transition-all duration-300 group/dock">
+                <div className="h-full glass-card rounded-2xl flex flex-col p-2 overflow-hidden shadow-2xl hover:shadow-primary/5 border-white/40 dark:border-white/5">
+                    <div className="flex items-center h-10 mb-4 text-primary overflow-hidden">
+                        <div className="w-12 flex items-center justify-center shrink-0">
+                            <Plus className="w-6 h-6" />
+                        </div>
+                        <span className="font-bold text-lg opacity-0 group-hover/dock:opacity-100 transition-opacity duration-300 whitespace-nowrap">Add Node</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-1 no-scrollbar space-y-6">
                         {['Trigger', 'Action', 'Logic'].map(category => (
-                            <div key={category}>
-                                <div className="text-[10px] font-bold text-slate-400 mb-2 uppercase">{category}s</div>
-                                {NODE_TYPES_LIST.filter(n => n.category === category && n.label.toLowerCase().includes(searchQuery.toLowerCase())).map(node => (
-                                    <div
-                                        key={node.type}
-                                        className="bg-card p-2.5 mb-2 border rounded-md shadow-sm cursor-move text-sm hover:border-primary hover:shadow-md transition-all flex items-center gap-2 group"
-                                        onDragStart={(event) => event.dataTransfer.setData('application/reactflow', node.type)}
-                                        draggable
-                                    >
-                                        <Plus size={14} className="text-slate-300 group-hover:text-primary transition-colors" />
-                                        {node.label}
-                                    </div>
-                                ))}
+                            <div key={category} className="space-y-2">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 opacity-0 group-hover/dock:opacity-100 transition-opacity duration-300">
+                                    {category}
+                                </div>
+                                <div className="space-y-1">
+                                    {NODE_TYPES_LIST.filter(n => n.category === category).map(node => {
+                                        const Icon = ICONS[node.type] || Settings;
+                                        return (
+                                            <div
+                                                key={node.type}
+                                                className="p-2 rounded-xl cursor-grab active:cursor-grabbing hover:bg-primary/10 transition-colors flex items-center gap-3 group/item relative"
+                                                onDragStart={(event) => event.dataTransfer.setData('application/reactflow', node.type)}
+                                                draggable
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800 text-slate-500 group-hover/item:text-primary transition-colors">
+                                                    <Icon size={16} />
+                                                </div>
+                                                <span className="text-sm font-medium opacity-0 group-hover/dock:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                                    {node.label}
+                                                </span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
+            </div>
 
-                {/* Canvas */}
-                <div className="flex-1 relative bg-background" ref={reactFlowWrapper}>
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        onInit={setReactFlowInstance}
-                        onDrop={onDrop}
-                        onDragOver={onDragOver}
-                        onNodeClick={onNodeClick}
-                        onPaneClick={() => {
-                            setSelectedNode(null);
-                            setIsConfigOpen(false);
-                        }}
-                        nodeTypes={nodeTypes}
-                        snapToGrid={true}
-                        snapGrid={[15, 15]}
-                        fitView
-                    >
-                        <Background color="#94a3b8" variant={BackgroundVariant.Dots} gap={20} size={1} />
-                        <Controls className="bg-card border-none shadow-xl" />
-                        <MiniMap
-                            className="bg-card border-none shadow-xl rounded-xl overflow-hidden"
-                            maskColor="rgba(0,0,0,0.1)"
-                        />
-                    </ReactFlow>
-                </div>
+            {/* Main Canvas */}
+            <div className="absolute inset-0 z-0 bg-slate-50/50 dark:bg-slate-950" ref={reactFlowWrapper}>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onInit={setReactFlowInstance}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onNodeClick={onNodeClick}
+                    onPaneClick={() => {
+                        setSelectedNode(null);
+                        setIsConfigOpen(false);
+                    }}
+                    nodeTypes={nodeTypes}
+                    deleteKeyCode={['Backspace', 'Delete']}
+                    // snapToGrid={true}
+                    // snapGrid={[20, 20]} // Disable rigid grid for more 'organic' feel or keep it subtle
+                    fitView
+                    className="touch-none"
+                    minZoom={0.5}
+                    maxZoom={1.5}
+                >
+                    <Background color="#94a3b8" variant={BackgroundVariant.Dots} gap={20} size={1} className="opacity-[0.7] dark:opacity-[0.5]" />
+                    <Controls className="!bg-white/80 dark:!bg-slate-900/80 !backdrop-blur-md !border-none !shadow-xl !rounded-xl !m-6 scale-110 !fill-primary" showInteractive={false} />
+                    <MiniMap
+                        style={{ position: 'absolute', bottom: 24, right: 24, margin: 0 }}
+                        className="!bg-slate-50 dark:!bg-slate-900 !border !border-slate-200 dark:!border-slate-800 !rounded-xl !shadow-xl !w-48 !h-32 opacity-90 hover:opacity-100 transition-opacity z-50"
+                        maskColor="rgba(0,0,0,0.05)"
+                        nodeColor="#6366f1"
+                        zoomable
+                        pannable
+                    />
+                </ReactFlow>
+            </div>
 
-                {/* Right Panel */}
-                {isConfigOpen && (
-                    <div className="w-80 border-l bg-background/60 backdrop-blur-xl flex flex-col premium-shadow z-10 overflow-hidden">
-                        <Tabs defaultValue="config" className="flex flex-col h-full">
-                            <div className="p-4 border-b bg-background/20">
-                                <TabsList className="w-full bg-accent/50 p-1 rounded-xl">
-                                    <TabsTrigger value="config" className="flex-1 flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                                        <Settings size={14} /> Config
-                                    </TabsTrigger>
-                                    <TabsTrigger value="history" className="flex-1 flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm" onClick={fetchExecutions}>
-                                        <History size={14} /> History
-                                    </TabsTrigger>
-                                </TabsList>
+            {/* Right Config Panel - Floating Island */}
+            <div
+                className={`absolute top-28 right-6 bottom-6 w-96 transform transition-all duration-300 ease-out z-40 ${isConfigOpen ? 'translate-x-0 opacity-100' : 'translate-x-[110%] opacity-0'
+                    }`}
+            >
+                <div className="h-full glass-card rounded-2xl flex flex-col overflow-hidden shadow-2xl border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl">
+                    <Tabs defaultValue="config" className="flex flex-col h-full">
+                        <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50 flex-none">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="font-outfit font-bold text-xl">{selectedNode ? selectedNode.data.label : 'Configuration'}</h3>
+                                    <p className="text-xs text-muted-foreground">{selectedNode ? selectedNode.data.type : 'Select a node'}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground rounded-full" onClick={() => setIsConfigOpen(false)}>
+                                    <X size={18} />
+                                </Button>
                             </div>
+                            <TabsList className="w-full bg-slate-100 dark:bg-slate-950/50 p-1 rounded-xl">
+                                <TabsTrigger value="config" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                    <Settings size={14} className="mr-2" /> Settings
+                                </TabsTrigger>
+                                <TabsTrigger value="history" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" onClick={fetchExecutions}>
+                                    <History size={14} className="mr-2" /> Logs
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
 
-                            <TabsContent value="config" className="flex-1 overflow-y-auto p-4 m-0">
-                                {selectedNode ? (
-                                    <>
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h3 className="font-bold text-lg">{selectedNode.data.label}</h3>
-                                            <Button variant="ghost" size="icon" onClick={() => setNodes(nodes.filter(n => n.id !== selectedNode.id))}>
-                                                <Trash size={16} className="text-red-500" />
-                                            </Button>
+                        <TabsContent value="config" className="flex-1 overflow-y-auto p-0 m-0 custom-scrollbar">
+                            {selectedNode ? (
+                                <div className="p-5 space-y-6">
+                                    {/* General Section */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">General</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Label htmlFor="node-enabled" className="text-xs cursor-pointer">Enabled</Label>
+                                                <input
+                                                    type="checkbox"
+                                                    id="node-enabled"
+                                                    checked={selectedNode.data.enabled !== false}
+                                                    onChange={e => updateNodeData('enabled', e.target.checked)}
+                                                    className="h-4 w-4 accent-primary rounded border-slate-300"
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="space-y-4">
-                                            <div className="border-b pb-6 space-y-4">
-                                                <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">General</h4>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Node Label</Label>
-                                                    <Input value={selectedNode.data.label} onChange={e => updateNodeData('label', e.target.value)} />
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Node Name</Label>
+                                            <Input
+                                                value={selectedNode.data.label}
+                                                onChange={e => updateNodeData('label', e.target.value)}
+                                                className="bg-slate-50 dark:bg-slate-950/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Description</Label>
+                                            <Textarea
+                                                value={selectedNode.data.description || ''}
+                                                onChange={e => updateNodeData('description', e.target.value)}
+                                                placeholder="What does this node do?"
+                                                className="min-h-[60px] resize-none bg-slate-50 dark:bg-slate-950/50 text-xs"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="h-[1px] bg-slate-100 dark:bg-slate-800" />
+
+                                    {/* Configuration Section */}
+                                    <div className="space-y-4">
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Configuration</Label>
+
+                                        {selectedNode.data.type === 'http-request' && (
+                                            <div className="grid grid-cols-4 gap-2">
+                                                <div className="col-span-1 space-y-2">
+                                                    <Label className="text-[10px]">Method</Label>
+                                                    <select
+                                                        className="w-full text-xs h-9 border rounded-md px-2 bg-slate-50 dark:bg-slate-950/50"
+                                                        value={selectedNode.data.config.method || 'GET'}
+                                                        onChange={e => updateConfig('method', e.target.value)}
+                                                    >
+                                                        {['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map(m => <option key={m} value={m}>{m}</option>)}
+                                                    </select>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Description</Label>
-                                                    <Input
-                                                        value={selectedNode.data.description || ''}
-                                                        onChange={e => updateNodeData('description', e.target.value)}
-                                                        placeholder="Add a note..."
-                                                    />
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        id="node-enabled"
-                                                        checked={selectedNode.data.enabled !== false}
-                                                        onChange={e => updateNodeData('enabled', e.target.checked)}
-                                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                    />
-                                                    <Label htmlFor="node-enabled" className="cursor-pointer text-xs">Enabled</Label>
+                                                <div className="col-span-3 space-y-2">
+                                                    <Label className="text-[10px]">URL</Label>
+                                                    <Input value={selectedNode.data.config.url || ''} onChange={e => updateConfig('url', e.target.value)} className="h-9 bg-slate-50 dark:bg-slate-950/50" />
                                                 </div>
                                             </div>
+                                        )}
 
-                                            <div className="bg-blue-50 p-2 rounded text-[10px] text-blue-700 border border-blue-100 flex gap-2">
-                                                <div className="font-bold">TIP:</div>
-                                                <div>Use <code className="bg-blue-100 px-1 rounded">{"{{node_id.key}}"}</code> to reference previous outputs.</div>
+                                        {selectedNode.data.type === 'code' && (
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">JavaScript Code</Label>
+                                                <div className="relative rounded-md overflow-hidden border border-slate-200 dark:border-slate-800">
+                                                    <div className="absolute top-0 right-0 p-1 bg-slate-100 dark:bg-slate-900 text-[10px] text-muted-foreground rounded-bl">JS</div>
+                                                    <Textarea
+                                                        value={selectedNode.data.config.code || 'return input;'}
+                                                        onChange={e => updateConfig('code', e.target.value)}
+                                                        className="font-mono text-[11px] min-h-[250px] bg-slate-950 text-slate-100 border-none focus-visible:ring-0 p-4 leading-relaxed"
+                                                        spellCheck={false}
+                                                    />
+                                                </div>
+                                                <div className="text-[10px] text-muted-foreground">
+                                                    Available: <code className="text-primary">input</code>, <code className="text-primary">context</code>
+                                                </div>
                                             </div>
+                                        )}
 
-                                            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Configuration</h4>
+                                        {selectedNode.data.type === 'ai-agent' && (
                                             <div className="space-y-4">
-                                                {selectedNode.data.type === 'code' && (
-                                                    <div className="space-y-3">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">JavaScript Code</Label>
-                                                            <Textarea
-                                                                value={selectedNode.data.config.code || 'return input;'}
-                                                                onChange={e => updateConfig('code', e.target.value)}
-                                                                placeholder="return { key: 'value' };"
-                                                                className="font-mono text-[10px] min-h-[200px] bg-slate-900 text-slate-100"
-                                                            />
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground space-y-1 bg-slate-50 p-2 rounded border">
-                                                            <p className="font-bold">Available Variables:</p>
-                                                            <ul className="list-disc pl-4 space-y-0.5">
-                                                                <li><code className="bg-slate-200 px-1 rounded">input</code>: Data from previous node.</li>
-                                                                <li><code className="bg-slate-200 px-1 rounded">context</code>: Map of all node results.</li>
-                                                            </ul>
-                                                            <p className="italic mt-1">Note: Code must return an object.</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'http-request' && (
-                                                    <>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">URL</Label>
-                                                            <Input value={selectedNode.data.config.url || ''} onChange={e => updateConfig('url', e.target.value)} />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Method</Label>
-                                                            <select
-                                                                className="w-full text-xs h-8 border rounded px-1"
-                                                                value={selectedNode.data.config.method || 'GET'}
-                                                                onChange={e => updateConfig('method', e.target.value)}
-                                                            >
-                                                                <option value="GET">GET</option>
-                                                                <option value="POST">POST</option>
-                                                                <option value="PUT">PUT</option>
-                                                                <option value="DELETE">DELETE</option>
-                                                                <option value="PATCH">PATCH</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="pt-2 border-t mt-2">
-                                                            <Label className="text-[10px] text-muted-foreground">Authentication</Label>
-                                                            <select
-                                                                className="w-full text-xs h-8 border rounded px-1 mb-2"
-                                                                value={selectedNode.data.config.auth?.type || 'none'}
-                                                                onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, type: e.target.value })}
-                                                            >
-                                                                <option value="none">None</option>
-                                                                <option value="bearer">Bearer Token</option>
-                                                                <option value="basic">Basic Auth</option>
-                                                            </select>
-
-                                                            {selectedNode.data.config.auth?.type === 'bearer' && (
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-xs">Context Fields</Label>
+                                                    <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => {
+                                                        const newFields = [...(selectedNode.data.config.fields || []), { key: '', value: '' }];
+                                                        updateConfig('fields', newFields);
+                                                    }}>
+                                                        <Plus size={10} className="mr-1" /> Add
+                                                    </Button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {(selectedNode.data.config.fields || []).map((f: any, i: number) => (
+                                                        <div key={i} className="flex gap-1 items-start group">
+                                                            <div className="grid grid-cols-2 gap-1 flex-1">
+                                                                <Input
+                                                                    className="h-8 text-xs font-mono"
+                                                                    placeholder="Key"
+                                                                    value={f.key}
+                                                                    onChange={e => {
+                                                                        const newFields = [...selectedNode.data.config.fields];
+                                                                        newFields[i].key = e.target.value;
+                                                                        updateConfig('fields', newFields);
+                                                                    }}
+                                                                />
                                                                 <Input
                                                                     className="h-8 text-xs"
-                                                                    placeholder="Token"
-                                                                    value={selectedNode.data.config.auth.token || ''}
-                                                                    onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, token: e.target.value })}
-                                                                />
-                                                            )}
-
-                                                            {selectedNode.data.config.auth?.type === 'basic' && (
-                                                                <div className="space-y-1">
-                                                                    <Input
-                                                                        className="h-8 text-xs"
-                                                                        placeholder="Username"
-                                                                        value={selectedNode.data.config.auth.username || ''}
-                                                                        onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, username: e.target.value })}
-                                                                    />
-                                                                    <Input
-                                                                        className="h-8 text-xs"
-                                                                        type="password"
-                                                                        placeholder="Password"
-                                                                        value={selectedNode.data.config.auth.password || ''}
-                                                                        onChange={e => updateConfig('auth', { ...selectedNode.data.config.auth, password: e.target.value })}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {selectedNode.data.type === 'schedule-trigger' && (
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Cron Expression</Label>
-                                                        <Input
-                                                            value={selectedNode.data.config.cron || '*/5 * * * *'}
-                                                            onChange={e => updateConfig('cron', e.target.value)}
-                                                            placeholder="*/5 * * * *"
-                                                        />
-                                                        <p className="text-[10px] text-muted-foreground">Standard Cron syntax.</p>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'send-email' && (
-                                                    <div className="space-y-3">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">To</Label>
-                                                            <Input value={selectedNode.data.config.to || ''} onChange={e => updateConfig('to', e.target.value)} placeholder="email@example.com" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Subject</Label>
-                                                            <Input value={selectedNode.data.config.subject || ''} onChange={e => updateConfig('subject', e.target.value)} placeholder="Hello!" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Body</Label>
-                                                            <Textarea
-                                                                value={selectedNode.data.config.body || ''}
-                                                                onChange={e => updateConfig('body', e.target.value)}
-                                                                placeholder="Email content..."
-                                                                className="text-xs"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'slack-message' && (
-                                                    <div className="space-y-3">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Webhook URL</Label>
-                                                            <Input value={selectedNode.data.config.webhookUrl || ''} onChange={e => updateConfig('webhookUrl', e.target.value)} placeholder="https://hooks.slack.com/services/..." />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Channel (optional)</Label>
-                                                            <Input value={selectedNode.data.config.channel || ''} onChange={e => updateConfig('channel', e.target.value)} placeholder="#general" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Message</Label>
-                                                            <Textarea
-                                                                value={selectedNode.data.config.text || ''}
-                                                                onChange={e => updateConfig('text', e.target.value)}
-                                                                placeholder="Your message here..."
-                                                                className="text-xs"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'delay' && (
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Duration (ms)</Label>
-                                                        <Input
-                                                            type="number"
-                                                            value={selectedNode.data.config.duration || 1000}
-                                                            onChange={e => updateConfig('duration', parseInt(e.target.value))}
-                                                        />
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'loop' && (
-                                                    <div className="space-y-2">
-                                                        <Label className="text-xs">Field to iterate (optional)</Label>
-                                                        <Input
-                                                            value={selectedNode.data.config.field || ''}
-                                                            onChange={e => updateConfig('field', e.target.value)}
-                                                            placeholder="e.g. results"
-                                                        />
-                                                        <p className="text-[10px] text-muted-foreground italic">
-                                                            If empty, it tries to iterate over the entire input data.
-                                                        </p>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'switch' && (
-                                                    <div className="space-y-4">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Field to Match</Label>
-                                                            <Input
-                                                                value={selectedNode.data.config.field || ''}
-                                                                onChange={e => updateConfig('field', e.target.value)}
-                                                                placeholder="e.g. status"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <Label className="text-xs font-bold">Cases</Label>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-6 px-2 text-[10px]"
-                                                                    onClick={() => {
-                                                                        const newCases = [...(selectedNode.data.config.cases || [])];
-                                                                        newCases.push({ value: '', handle: `case_${Date.now()}` });
-                                                                        updateConfig('cases', newCases);
+                                                                    placeholder="Value"
+                                                                    value={f.value}
+                                                                    onChange={e => {
+                                                                        const newFields = [...selectedNode.data.config.fields];
+                                                                        newFields[i].value = e.target.value;
+                                                                        updateConfig('fields', newFields);
                                                                     }}
-                                                                >
-                                                                    <Plus size={10} className="mr-1" /> Add
-                                                                </Button>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                {(selectedNode.data.config.cases || []).map((c: any, i: number) => (
-                                                                    <div key={i} className="flex gap-1 items-center">
-                                                                        <Input
-                                                                            className="h-8 text-xs flex-1"
-                                                                            value={c.value}
-                                                                            onChange={e => {
-                                                                                const newCases = [...selectedNode.data.config.cases];
-                                                                                newCases[i].value = e.target.value;
-                                                                                updateConfig('cases', newCases);
-                                                                            }}
-                                                                            placeholder="Value"
-                                                                        />
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 text-red-400"
-                                                                            onClick={() => {
-                                                                                const newCases = selectedNode.data.config.cases.filter((_: any, idx: number) => idx !== i);
-                                                                                updateConfig('cases', newCases);
-                                                                            }}
-                                                                        >
-                                                                            <Trash size={12} />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'ai-agent' && (
-                                                    <div className="space-y-3">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">System Instructions (Optional)</Label>
-                                                            <Textarea
-                                                                value={selectedNode.data.config.systemPrompt || ''}
-                                                                onChange={e => updateConfig('systemPrompt', e.target.value)}
-                                                                placeholder="You are a helpful assistant..."
-                                                                className="text-xs h-20"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">User Prompt</Label>
-                                                            <Textarea
-                                                                value={selectedNode.data.config.prompt || ''}
-                                                                onChange={e => updateConfig('prompt', e.target.value)}
-                                                                placeholder="Summarize this: {{prev_node.data}}"
-                                                                className="text-xs h-32"
-                                                            />
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div className="space-y-1">
-                                                                <Label className="text-[10px]">Model</Label>
-                                                                <select
-                                                                    className="w-full text-[10px] h-7 border rounded"
-                                                                    value={selectedNode.data.config.model || 'gpt-4o'}
-                                                                    onChange={e => updateConfig('model', e.target.value)}
-                                                                >
-                                                                    <option value="gpt-4o">GPT-4o</option>
-                                                                    <option value="gpt-3.5-turbo">GPT-3.5</option>
-                                                                    <option value="claude-3-sonnet">Claude 3</option>
-                                                                </select>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label className="text-[10px]">Temperature</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    step="0.1"
-                                                                    className="h-7 text-[10px]"
-                                                                    value={selectedNode.data.config.temperature || 0.7}
-                                                                    onChange={e => updateConfig('temperature', parseFloat(e.target.value))}
                                                                 />
                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'if' && (
-                                                    <div className="space-y-4">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs">Logic</Label>
-                                                            <select
-                                                                className="w-full text-xs h-8 border rounded px-1"
-                                                                value={selectedNode.data.config.logic || 'AND'}
-                                                                onChange={e => updateConfig('logic', e.target.value)}
-                                                            >
-                                                                <option value="AND">AND (All must match)</option>
-                                                                <option value="OR">OR (Any must match)</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <Label className="text-xs font-bold">Conditions</Label>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-6 px-2 text-[10px]"
-                                                                    onClick={() => {
-                                                                        const newConds = [...(selectedNode.data.config.conditions || [])];
-                                                                        newConds.push({ field: '', operator: 'equals', value: '' });
-                                                                        updateConfig('conditions', newConds);
-                                                                    }}
-                                                                >
-                                                                    <Plus size={10} className="mr-1" /> Add
-                                                                </Button>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                {(selectedNode.data.config.conditions || []).map((c: any, i: number) => (
-                                                                    <div key={i} className="flex gap-1 items-center border p-2 rounded relative group bg-slate-50/50">
-                                                                        <div className="grid grid-cols-1 gap-1 flex-1">
-                                                                            <Input
-                                                                                className="h-7 text-[10px]"
-                                                                                placeholder="Field (e.g. status)"
-                                                                                value={c.field}
-                                                                                onChange={e => {
-                                                                                    const newConds = [...selectedNode.data.config.conditions];
-                                                                                    newConds[i].field = e.target.value;
-                                                                                    updateConfig('conditions', newConds);
-                                                                                }}
-                                                                            />
-                                                                            <select
-                                                                                className="h-7 text-[10px] border rounded"
-                                                                                value={c.operator}
-                                                                                onChange={e => {
-                                                                                    const newConds = [...selectedNode.data.config.conditions];
-                                                                                    newConds[i].operator = e.target.value;
-                                                                                    updateConfig('conditions', newConds);
-                                                                                }}
-                                                                            >
-                                                                                <option value="equals">Equals</option>
-                                                                                <option value="contains">Contains</option>
-                                                                                <option value="greaterThan">Greater Than</option>
-                                                                                <option value="lessThan">Less Than</option>
-                                                                            </select>
-                                                                            <Input
-                                                                                className="h-7 text-[10px]"
-                                                                                placeholder="Value"
-                                                                                value={c.value}
-                                                                                onChange={e => {
-                                                                                    const newConds = [...selectedNode.data.config.conditions];
-                                                                                    newConds[i].value = e.target.value;
-                                                                                    updateConfig('conditions', newConds);
-                                                                                }}
-                                                                            />
-                                                                        </div>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-6 w-6 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                            onClick={() => {
-                                                                                const newConds = selectedNode.data.config.conditions.filter((_: any, idx: number) => idx !== i);
-                                                                                updateConfig('conditions', newConds);
-                                                                            }}
-                                                                        >
-                                                                            <Trash size={10} />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {selectedNode.data.type === 'set' && (
-                                                    <div className="space-y-4">
-                                                        <div className="flex justify-between items-center">
-                                                            <Label className="text-xs font-bold">Variables to Set</Label>
                                                             <Button
                                                                 variant="ghost"
-                                                                size="sm"
-                                                                className="h-6 px-2 text-[10px]"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                 onClick={() => {
-                                                                    const newFields = [...(selectedNode.data.config.fields || [])];
-                                                                    newFields.push({ key: '', value: '' });
+                                                                    const newFields = selectedNode.data.config.fields.filter((_: any, idx: number) => idx !== i);
                                                                     updateConfig('fields', newFields);
                                                                 }}
                                                             >
-                                                                <Plus size={10} className="mr-1" /> Add
+                                                                <Trash size={12} />
                                                             </Button>
                                                         </div>
-                                                        <div className="space-y-2">
-                                                            {(selectedNode.data.config.fields || []).map((f: any, i: number) => (
-                                                                <div key={i} className="flex gap-1 items-start group">
-                                                                    <div className="grid grid-cols-2 gap-1 flex-1">
-                                                                        <Input
-                                                                            className="h-8 text-xs font-mono"
-                                                                            placeholder="Key"
-                                                                            value={f.key}
-                                                                            onChange={e => {
-                                                                                const newFields = [...selectedNode.data.config.fields];
-                                                                                newFields[i].key = e.target.value;
-                                                                                updateConfig('fields', newFields);
-                                                                            }}
-                                                                        />
-                                                                        <Input
-                                                                            className="h-8 text-xs"
-                                                                            placeholder="Value"
-                                                                            value={f.value}
-                                                                            onChange={e => {
-                                                                                const newFields = [...selectedNode.data.config.fields];
-                                                                                newFields[i].value = e.target.value;
-                                                                                updateConfig('fields', newFields);
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                        onClick={() => {
-                                                                            const newFields = selectedNode.data.config.fields.filter((_: any, idx: number) => idx !== i);
-                                                                            updateConfig('fields', newFields);
-                                                                        }}
-                                                                    >
-                                                                        <Trash size={12} />
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Variables Helper */}
-                                                <div className="mt-8 border-t pt-4">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Available Variables</h4>
-                                                        <div className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded">Click to copy</div>
-                                                    </div>
-                                                    <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                                                        {nodes.filter(n => n.id !== selectedNode.id).map(node => (
-                                                            <div
-                                                                key={node.id}
-                                                                className="flex items-center justify-between p-2 rounded border bg-slate-50 hover:bg-slate-100 cursor-pointer group transition-colors"
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(`{{${node.id}}}`);
-                                                                    toast.success('Copied variable tag!');
-                                                                }}
-                                                            >
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-[11px] font-bold text-slate-700">{node.data.label || node.type}</span>
-                                                                    <span className="text-[9px] text-muted-foreground font-mono">ID: {node.id}</span>
-                                                                </div>
-                                                                <div className="text-[10px] font-mono text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    {"{{"}{node.id}{"}}"}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                        {nodes.length <= 1 && (
-                                                            <div className="text-center py-4 text-[10px] text-muted-foreground italic">
-                                                                Add more nodes to see variables.
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    ))}
                                                 </div>
-                                                {executionResult && executionResult.output && executionResult.output[selectedNode.id] && (
-                                                    <div className="mt-8 border-t pt-4">
-                                                        <h4 className="font-semibold text-xs text-muted-foreground uppercase mb-2">Last Output</h4>
-                                                        <pre className="bg-slate-50 p-2 rounded border text-[10px] overflow-auto max-h-40 font-mono">
-                                                            {JSON.stringify(executionResult.output[selectedNode.id], null, 2)}
-                                                        </pre>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
-                                        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
-                                            <Settings size={24} />
-                                        </div>
-                                        <p className="text-sm font-medium text-slate-400">Select a node to configure its properties</p>
-                                    </div>
-                                )}
-                            </TabsContent>
-
-                            <TabsContent value="history" className="flex-1 overflow-y-auto p-4 m-0">
-                                <div className="space-y-3">
-                                    <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest mb-4">Recent Executions</h4>
-                                    <div className="space-y-2">
-                                        {executions.map(ex => (
-                                            <div
-                                                key={ex.id}
-                                                className="p-3 border rounded-lg hover:border-primary cursor-pointer transition-all bg-card shadow-sm"
-                                                onClick={() => router.push(`/app/executions/${ex.id}`)}
-                                            >
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ex.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
-                                                        ex.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                                                        }`}>
-                                                        {ex.status}
-                                                    </span>
-                                                    <span className="text-[10px] text-muted-foreground font-mono">#{ex.id.slice(0, 6)}</span>
-                                                </div>
-                                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                    <Clock size={10} /> {new Date(ex.startedAt).toLocaleString()}
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {executions.length === 0 && (
-                                            <div className="text-center py-10 opacity-50">
-                                                <p className="text-xs">No execution history found.</p>
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Variables Helper */}
+                                    <div className="mt-8 border-t pt-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest">Available Variables</h4>
+                                            <div className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded">Click to copy</div>
+                                        </div>
+                                        <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                                            {nodes.filter(n => n.id !== selectedNode.id).map(node => (
+                                                <div
+                                                    key={node.id}
+                                                    className="flex items-center justify-between p-2 rounded border bg-slate-50 hover:bg-slate-100 cursor-pointer group transition-colors"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`{{${node.id}}}`);
+                                                        toast.success('Copied variable tag!');
+                                                    }}
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[11px] font-bold text-slate-700">{node.data.label || node.type}</span>
+                                                        <span className="text-[9px] text-muted-foreground font-mono">ID: {node.id}</span>
+                                                    </div>
+                                                    <div className="text-[10px] font-mono text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {"{{"}{node.id}{"}}"}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {nodes.length <= 1 && (
+                                                <div className="text-center py-4 text-[10px] text-muted-foreground italic">
+                                                    Add more nodes to see variables.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {executionResult && executionResult.output && executionResult.output[selectedNode.id] && (
+                                        <div className="mt-8 border-t pt-4">
+                                            <h4 className="font-semibold text-xs text-muted-foreground uppercase mb-2">Last Output</h4>
+                                            <pre className="bg-slate-50 p-2 rounded border text-[10px] overflow-auto max-h-40 font-mono">
+                                                {JSON.stringify(executionResult.output[selectedNode.id], null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
                                 </div>
-                            </TabsContent>
-                        </Tabs >
-                    </div >
-                )
-                }
-            </div >
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
+                                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
+                                        <Settings size={24} />
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-400">Select a node to configure its properties</p>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="history" className="flex-1 overflow-y-auto p-4 m-0">
+                            <div className="space-y-3">
+                                <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-widest mb-4">Recent Executions</h4>
+                                <div className="space-y-2">
+                                    {executions.map(ex => (
+                                        <div
+                                            key={ex.id}
+                                            className="p-3 border rounded-lg hover:border-primary cursor-pointer transition-all bg-card shadow-sm"
+                                            onClick={() => router.push(`/app/executions/${ex.id}`)}
+                                        >
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ex.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
+                                                    ex.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {ex.status}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-mono">#{ex.id.slice(0, 6)}</span>
+                                            </div>
+                                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                <Clock size={10} /> {new Date(ex.startedAt).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {executions.length === 0 && (
+                                        <div className="text-center py-10 opacity-50">
+                                            <p className="text-xs">No execution history found.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                </div>
+            </div>
             <ConfirmDialog
                 open={confirmDeleteOpen}
                 onOpenChange={setConfirmDeleteOpen}

@@ -42,7 +42,7 @@ export default function TemplatesPage() {
                     <h1 className="text-4xl font-extrabold tracking-tight font-outfit text-foreground">Templates</h1>
                     <p className="text-muted-foreground mt-1">Start with a professional recipe or build your own custom flow.</p>
                 </div>
-                <Button onClick={createBlank} variant="outline" className="border-primary/20 hover:bg-primary/5 hover:text-primary h-11 px-6 rounded-xl font-bold transition-all">
+                <Button onClick={createBlank} className="premium-gradient shadow-lg shadow-primary/20 hover:scale-105 transition-transform h-11 px-6 rounded-xl font-bold">
                     <Plus className="mr-2 h-5 w-5" /> Create Blank
                 </Button>
             </div>

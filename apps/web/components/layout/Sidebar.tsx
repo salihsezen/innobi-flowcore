@@ -34,8 +34,8 @@ export function Sidebar() {
     return (
         <>
             {/* Mobile Toggle Button */}
-            <div className="md:hidden fixed top-4 left-4 z-50">
-                <button 
+            <div className="md:hidden fixed top-20 left-4 z-50">
+                <button
                     onClick={() => setMobileOpen(!mobileOpen)}
                     className="p-2.5 bg-background/80 backdrop-blur-md border rounded-xl shadow-sm hover:bg-accent transition-colors"
                 >
@@ -45,7 +45,7 @@ export function Sidebar() {
 
             {/* Mobile Overlay */}
             {mobileOpen && (
-                <div 
+                <div
                     className="md:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
                     onClick={() => setMobileOpen(false)}
                 />
@@ -117,7 +117,7 @@ export function Sidebar() {
                     <div className="flex justify-center">
                         <ModeToggle />
                     </div>
-                    
+
                     {/* Desktop Profile Card */}
                     <div className="glass-card p-3 rounded-2xl group hover:scale-[1.02] transition-all duration-300 md:hidden lg:block">
                         <div className="flex items-center gap-3 mb-3">
